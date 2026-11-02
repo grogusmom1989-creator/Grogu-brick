@@ -858,6 +858,11 @@ echo "Upload app-release-bundle.aab to Google Play Console -> Production -> Crea
                   content: `${appOrigin}/privacy.html`,
                 },
                 {
+                  key: 'terms_url',
+                  label: 'Terms of Service URL (Play Store / Legal)',
+                  content: `${appOrigin}/terms.html`,
+                },
+                {
                   key: 'title',
                   label: 'App Name (Max 30 chars)',
                   content: 'OmniSync Hub: Cloud & AI Studio',
