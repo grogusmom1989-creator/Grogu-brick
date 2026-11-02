@@ -21,6 +21,11 @@ import {
   Bookmark,
   Grid,
   Compass,
+  Rocket,
+  Code2,
+  Crown,
+  Play,
+  FolderGit2,
 } from 'lucide-react';
 import {
   AppTab,
@@ -28,6 +33,7 @@ import {
   SocialPost,
   SocialPlatformId,
   GoogleDriveFile,
+  GitHubRepo,
   WorkspaceProject,
   WorkspaceTask,
   WorkspaceNote,
@@ -36,16 +42,172 @@ import {
 export interface AppStoreShortcut {
   id: string;
   name: string;
-  category: 'Meta & Social' | 'Creator & Video' | 'Google & Cloud' | 'Finance & Pay' | 'AI & Dev' | 'Custom';
+  category:
+    | 'Meta Muse (My Apps)'
+    | 'Meta & Social'
+    | 'Creator & Video'
+    | 'Google & Cloud'
+    | 'Finance & Pay'
+    | 'AI & Dev'
+    | 'Custom';
   packageName: string;
   webUrl: string;
   playStoreUrl: string;
   appStoreUrl: string;
   badgeColor: string;
   description: string;
+  internalTab?: AppTab;
 }
 
+export interface CreatorStoreApp {
+  id: string;
+  name: string;
+  tagline: string;
+  packageName: string;
+  version: string;
+  category: string;
+  status: 'Live in Meta Muse' | 'Google Play Ready (.aab)' | 'In Active Creation';
+  internalTab?: AppTab;
+  externalUrl?: string;
+  repoUrl?: string;
+  accentGradient: string;
+  badgeText: string;
+}
+
+const BUILTIN_META_MUSE_APPS: CreatorStoreApp[] = [
+  {
+    id: 'muse-app-metamuse',
+    name: 'Meta Muse — Creator App Store & Social OS',
+    tagline:
+      'Flagship Meta ecosystem command center, universal App Store launcher, and cross-platform social syndication studio.',
+    packageName: 'app.metamuse.store',
+    version: 'v3.2.0',
+    category: 'Meta Muse Flagship',
+    status: 'Live in Meta Muse',
+    internalTab: 'social',
+    externalUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=social',
+    repoUrl: 'https://github.com/grogusmom1989',
+    accentGradient: 'from-fuchsia-600/30 via-purple-600/20 to-indigo-600/20 border-fuchsia-500/40',
+    badgeText: 'Meta Muse Flagship',
+  },
+  {
+    id: 'muse-app-omnisync',
+    name: 'OmniSync Workspace & Cloud Hub',
+    tagline:
+      'Autonomous background sync daemon uniting Google Drive, GitHub, Firestore Cloud, offline Outbox, and conflict resolution.',
+    packageName: 'app.omnisync.hub',
+    version: 'v2.8.0',
+    category: 'Cloud & Productivity',
+    status: 'Google Play Ready (.aab)',
+    internalTab: 'overview',
+    externalUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app',
+    repoUrl: 'https://github.com/grogusmom1989',
+    accentGradient: 'from-indigo-600/30 via-blue-600/20 to-cyan-600/20 border-indigo-500/40',
+    badgeText: 'Core Hub APK/AAB',
+  },
+  {
+    id: 'muse-app-1dworld',
+    name: '1D World & Quantum Reiki HQ (528Hz)',
+    tagline:
+      'Interactive 528Hz Miracle Tone frequency synthesizer, meridian alignment studio, and distance Reiki healing sanctuary.',
+    packageName: 'app.metamuse.onedworld',
+    version: 'v2.4.0',
+    category: 'Sound Healing & Reiki',
+    status: 'Live in Meta Muse',
+    internalTab: 'one_d_world',
+    externalUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=one_d_world',
+    repoUrl: 'https://github.com/grogusmom1989',
+    accentGradient: 'from-cyan-600/30 via-teal-600/20 to-emerald-600/20 border-cyan-500/40',
+    badgeText: '528Hz Audio Engine',
+  },
+  {
+    id: 'muse-app-kikisworld',
+    name: "Kiki's World 2.0 — Oracle, Crystal Grid & Cinema",
+    tagline:
+      'Daily Divine Oracle card deck, sacred geometry crystal grid generator, and audio-reactive cinema visualizer.',
+    packageName: 'app.metamuse.kikisworld',
+    version: 'v2.0.5',
+    category: 'Spiritual & Media',
+    status: 'Live in Meta Muse',
+    internalTab: 'kikis_world',
+    externalUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=kikis_world',
+    repoUrl: 'https://github.com/grogusmom1989',
+    accentGradient: 'from-purple-600/30 via-pink-600/20 to-rose-600/20 border-purple-500/40',
+    badgeText: 'Oracle & Cinema',
+  },
+  {
+    id: 'muse-app-kikios',
+    name: 'KikiOS Cyber-Deck Spatial Desktop',
+    tagline:
+      'Full-screen multi-window cyber-deck operating system with polyphonic frequency synth, terminal, and file explorer.',
+    packageName: 'app.metamuse.kikios',
+    version: 'v1.9.0',
+    category: 'Spatial OS',
+    status: 'Live in Meta Muse',
+    internalTab: 'kikios',
+    externalUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=kikios',
+    repoUrl: 'https://github.com/grogusmom1989',
+    accentGradient: 'from-amber-600/30 via-orange-600/20 to-rose-600/20 border-amber-500/40',
+    badgeText: 'Desktop OS',
+  },
+  {
+    id: 'muse-app-remix',
+    name: 'Remixed App Studio & APK Builder',
+    tagline:
+      'Rapid app prototyping workbench, custom manifest generator, and 1-click Android Bubblewrap TWA builder.',
+    packageName: 'app.metamuse.remixstudio',
+    version: 'v1.7.2',
+    category: 'Creator Tools & Dev',
+    status: 'Google Play Ready (.aab)',
+    internalTab: 'remix',
+    externalUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=remix',
+    repoUrl: 'https://github.com/grogusmom1989',
+    accentGradient: 'from-emerald-600/30 via-teal-600/20 to-cyan-600/20 border-emerald-500/40',
+    badgeText: 'App Builder',
+  },
+  {
+    id: 'muse-app-earnings',
+    name: 'Meta Muse Creator Earnings & PayPal Hub',
+    tagline:
+      'Direct creator payouts, Reiki session bookings, digital oracle deck sales, and @grogusmom1989 PayPal ledger.',
+    packageName: 'app.metamuse.earnings',
+    version: 'v2.1.0',
+    category: 'Creator Economy',
+    status: 'Live in Meta Muse',
+    internalTab: 'earnings',
+    externalUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=earnings',
+    repoUrl: 'https://github.com/grogusmom1989',
+    accentGradient: 'from-blue-600/30 via-indigo-600/20 to-emerald-600/20 border-blue-500/40',
+    badgeText: 'Monetization',
+  },
+  {
+    id: 'muse-app-ai',
+    name: 'Meta Muse AI Copilot & Briefing Studio',
+    tagline:
+      'Executive workspace synthesizer for your Drive documents, GitHub issues, social captions, and creator roadmaps.',
+    packageName: 'app.metamuse.aicopilot',
+    version: 'v2.3.0',
+    category: 'AI & Automation',
+    status: 'Live in Meta Muse',
+    internalTab: 'ai',
+    externalUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=ai',
+    repoUrl: 'https://github.com/grogusmom1989',
+    accentGradient: 'from-violet-600/30 via-purple-600/20 to-fuchsia-600/20 border-violet-500/40',
+    badgeText: 'AI Copilot',
+  },
+];
+
 const MAJOR_APP_STORES = [
+  {
+    id: 'meta-muse-store',
+    name: 'Meta Muse App Store (My Apps)',
+    subtitle: 'All @grogusmom1989 Apps & Creations in One Store',
+    url: '#meta-muse-creator-store',
+    searchUrl: (q: string) => `https://github.com/grogusmom1989?tab=repositories&q=${encodeURIComponent(q)}`,
+    accent: 'from-fuchsia-500/30 via-purple-500/20 to-pink-500/15 border-fuchsia-400/50 text-fuchsia-200',
+    badge: 'My App Store',
+    isInternalAnchor: true,
+  },
   {
     id: 'google-play',
     name: 'Google Play Store',
@@ -54,6 +216,7 @@ const MAJOR_APP_STORES = [
     searchUrl: (q: string) => `https://play.google.com/store/search?q=${encodeURIComponent(q)}&c=apps`,
     accent: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/40 text-emerald-300',
     badge: 'Google Play',
+    isInternalAnchor: false,
   },
   {
     id: 'apple-app-store',
@@ -63,6 +226,7 @@ const MAJOR_APP_STORES = [
     searchUrl: (q: string) => `https://www.google.com/search?q=${encodeURIComponent('site:apps.apple.com ' + q)}`,
     accent: 'from-blue-500/20 to-indigo-500/10 border-blue-500/40 text-blue-300',
     badge: 'iOS / macOS',
+    isInternalAnchor: false,
   },
   {
     id: 'meta-quest-store',
@@ -72,6 +236,7 @@ const MAJOR_APP_STORES = [
     searchUrl: (q: string) => `https://www.meta.com/experiences/search/?q=${encodeURIComponent(q)}`,
     accent: 'from-indigo-500/20 to-cyan-500/10 border-indigo-500/40 text-indigo-300',
     badge: 'Meta Store',
+    isInternalAnchor: false,
   },
   {
     id: 'samsung-galaxy-store',
@@ -81,6 +246,7 @@ const MAJOR_APP_STORES = [
     searchUrl: (q: string) => `https://www.google.com/search?q=${encodeURIComponent('Samsung Galaxy Store ' + q)}`,
     accent: 'from-purple-500/20 to-pink-500/10 border-purple-500/40 text-purple-300',
     badge: 'Galaxy Store',
+    isInternalAnchor: false,
   },
   {
     id: 'amazon-appstore',
@@ -90,6 +256,7 @@ const MAJOR_APP_STORES = [
     searchUrl: (q: string) => `https://www.amazon.com/s?k=${encodeURIComponent(q)}&i=mobile-apps`,
     accent: 'from-amber-500/20 to-orange-500/10 border-amber-500/40 text-amber-300',
     badge: 'Amazon',
+    isInternalAnchor: false,
   },
   {
     id: 'microsoft-store',
@@ -99,28 +266,84 @@ const MAJOR_APP_STORES = [
     searchUrl: (q: string) => `https://apps.microsoft.com/search?query=${encodeURIComponent(q)}`,
     accent: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/40 text-cyan-300',
     badge: 'Windows',
+    isInternalAnchor: false,
   },
   {
     id: 'f-droid',
-    name: 'F-Droid Open Source',
-    subtitle: 'FOSS Android APK Repository',
-    url: 'https://f-droid.org/en/packages/',
-    searchUrl: (q: string) => `https://search.f-droid.org/?q=${encodeURIComponent(q)}`,
-    accent: 'from-lime-500/20 to-emerald-500/10 border-lime-500/40 text-lime-300',
-    badge: 'Open APK',
-  },
-  {
-    id: 'apkmirror-pwa',
-    name: 'APKMirror & Web Store',
-    subtitle: 'Direct Android Packages & PWAs',
+    name: 'F-Droid & APKMirror',
+    subtitle: 'Direct Android APK & Open Repositories',
     url: 'https://www.apkmirror.com/',
-    searchUrl: (q: string) => `https://www.apkmirror.com/?post_type=app_release&searchtype=apk&s=${encodeURIComponent(q)}`,
+    searchUrl: (q: string) =>
+      `https://www.apkmirror.com/?post_type=app_release&searchtype=apk&s=${encodeURIComponent(q)}`,
     accent: 'from-rose-500/20 to-orange-500/10 border-rose-500/40 text-rose-300',
     badge: 'Direct APK',
+    isInternalAnchor: false,
   },
 ];
 
 const DEFAULT_APP_SHORTCUTS: AppStoreShortcut[] = [
+  // Flagship Meta Muse (My Apps) Shortcuts
+  {
+    id: 'app-metamuse-hub',
+    name: 'Meta Muse Creator Store',
+    category: 'Meta Muse (My Apps)',
+    packageName: 'app.metamuse.store',
+    webUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=social',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=app.metamuse.store',
+    appStoreUrl: 'https://github.com/grogusmom1989',
+    badgeColor: 'text-fuchsia-300 border-fuchsia-500/40 bg-fuchsia-500/15',
+    description: 'Your personal Meta Muse App Store & Social Command Hub (@grogusmom1989)',
+    internalTab: 'social',
+  },
+  {
+    id: 'app-metamuse-oned',
+    name: '1D World & Reiki HQ (528Hz)',
+    category: 'Meta Muse (My Apps)',
+    packageName: 'app.metamuse.onedworld',
+    webUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=one_d_world',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=app.metamuse.onedworld',
+    appStoreUrl: 'https://github.com/grogusmom1989',
+    badgeColor: 'text-cyan-300 border-cyan-500/40 bg-cyan-500/15',
+    description: '528Hz Miracle Tone Synthesizer, Quantum Reiki & Meridian Alignment',
+    internalTab: 'one_d_world',
+  },
+  {
+    id: 'app-metamuse-kiki',
+    name: "Kiki's World 2.0 (Oracle & Cinema)",
+    category: 'Meta Muse (My Apps)',
+    packageName: 'app.metamuse.kikisworld',
+    webUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=kikis_world',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=app.metamuse.kikisworld',
+    appStoreUrl: 'https://github.com/grogusmom1989',
+    badgeColor: 'text-purple-300 border-purple-500/40 bg-purple-500/15',
+    description: 'Daily Divine Oracle Deck, Sacred Crystal Grid & Audio-Reactive Cinema',
+    internalTab: 'kikis_world',
+  },
+  {
+    id: 'app-metamuse-kikios',
+    name: 'KikiOS Cyber-Deck OS',
+    category: 'Meta Muse (My Apps)',
+    packageName: 'app.metamuse.kikios',
+    webUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=kikios',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=app.metamuse.kikios',
+    appStoreUrl: 'https://github.com/grogusmom1989',
+    badgeColor: 'text-amber-300 border-amber-500/40 bg-amber-500/15',
+    description: 'Spatial multi-window desktop environment & frequency synth deck',
+    internalTab: 'kikios',
+  },
+  {
+    id: 'app-metamuse-remix',
+    name: 'Remixed App Studio & APK Packager',
+    category: 'Meta Muse (My Apps)',
+    packageName: 'app.metamuse.remixstudio',
+    webUrl: 'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/?tab=remix',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=app.metamuse.remixstudio',
+    appStoreUrl: 'https://github.com/grogusmom1989',
+    badgeColor: 'text-emerald-300 border-emerald-500/40 bg-emerald-500/15',
+    description: 'Create, remix, and bundle your apps into Google Play .aab packages',
+    internalTab: 'remix',
+  },
+  // Meta & Social Ecosystem
   {
     id: 'app-meta-suite',
     name: 'Meta Business Suite',
@@ -186,6 +409,17 @@ const DEFAULT_APP_SHORTCUTS: AppStoreShortcut[] = [
     appStoreUrl: 'https://apps.apple.com/us/app/messenger/id454638411',
     badgeColor: 'text-indigo-400 border-indigo-500/30 bg-indigo-500/10',
     description: 'Cross-app Meta chat, voice & community rooms',
+  },
+  {
+    id: 'app-meta-ai',
+    name: 'Meta AI & Edits Studio',
+    category: 'Meta & Social',
+    packageName: 'com.facebook.view',
+    webUrl: 'https://www.meta.ai',
+    playStoreUrl: 'https://play.google.com/store/search?q=Meta+AI&c=apps',
+    appStoreUrl: 'https://www.meta.ai',
+    badgeColor: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10',
+    description: 'Meta creative assistant, Reels ideation & visual muse',
   },
   {
     id: 'app-tiktok',
@@ -388,6 +622,7 @@ const DEFAULT_APP_SHORTCUTS: AppStoreShortcut[] = [
 ];
 
 const CUSTOM_SHORTCUTS_STORAGE_KEY = 'omnisync_custom_appstore_shortcuts_v1';
+const CUSTOM_META_MUSE_APPS_KEY = 'omnisync_metamuse_creator_apps_v1';
 
 interface SocialMediaViewProps {
   accounts: SocialAccount[];
@@ -396,7 +631,9 @@ interface SocialMediaViewProps {
   onAddPost: (post: Omit<SocialPost, 'id' | 'createdAt'>) => void;
   onDeletePost: (id: string) => void;
   driveFiles?: GoogleDriveFile[];
+  githubRepos?: GitHubRepo[];
   projects?: WorkspaceProject[];
+  onAddProject?: (proj: Omit<WorkspaceProject, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onAddTask: (task: Omit<WorkspaceTask, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onAddNote: (note: Omit<WorkspaceNote, 'id' | 'updatedAt'>) => void;
   onOpenPlayStore: () => void;
@@ -416,11 +653,14 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
   onAddPost,
   onDeletePost,
   driveFiles = [],
+  githubRepos = [],
   projects = [],
+  onAddProject,
   onAddTask,
   onAddNote,
   onOpenPlayStore,
   onSyncSocialBackground,
+  onSelectTab,
   isSyncing = false,
 }) => {
   const [postTitle, setPostTitle] = useState('');
@@ -434,11 +674,27 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
     'x_twitter',
   ]);
   const [selectedDriveFile, setSelectedDriveFile] = useState<string>('');
-  const [selectedProject, setSelectedProject] = useState<string>('OmniSync Hub');
-  const [tagsInput, setTagsInput] = useState('Meta, Reels, OmniSync, Creator');
+  const [selectedProject, setSelectedProject] = useState<string>('Meta Muse App Store');
+  const [tagsInput, setTagsInput] = useState('MetaMuse, Meta, Reels, OmniSync, CreatorStore');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingHandleId, setEditingHandleId] = useState<SocialPlatformId | null>(null);
   const [handleDraft, setHandleDraft] = useState('');
+
+  // Meta Muse Personal Creator App Store State
+  const [customCreatorApps, setCustomCreatorApps] = useState<CreatorStoreApp[]>(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_META_MUSE_APPS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showPublishCreatorAppModal, setShowPublishCreatorAppModal] = useState(false);
+  const [newCreatorAppName, setNewCreatorAppName] = useState('');
+  const [newCreatorAppTagline, setNewCreatorAppTagline] = useState('');
+  const [newCreatorAppCategory, setNewCreatorAppCategory] = useState('Meta Muse Creation');
+  const [newCreatorAppUrl, setNewCreatorAppUrl] = useState('');
+  const [creatorStoreFilter, setCreatorStoreFilter] = useState<'all' | 'flagship' | 'repos'>('all');
 
   // Universal Google Play & Every App Store Shortcut Dock State
   const [storeSearchQuery, setStoreSearchQuery] = useState('');
@@ -463,6 +719,166 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
       // ignore storage errors
     }
   }, [customShortcuts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CUSTOM_META_MUSE_APPS_KEY, JSON.stringify(customCreatorApps));
+    } catch {
+      // ignore storage errors
+    }
+  }, [customCreatorApps]);
+
+  // Dynamically merge all apps the user is creating (Built-In Flagships + Custom Published Apps + Projects + GitHub Repos)
+  const dynamicProjectApps: CreatorStoreApp[] = projects
+    .filter(
+      (p) =>
+        !BUILTIN_META_MUSE_APPS.some(
+          (b) => b.name.toLowerCase().includes(p.name.toLowerCase())
+        )
+    )
+    .map((p) => {
+      const slug = p.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'creatorapp';
+      return {
+        id: `proj-app-${p.id}`,
+        name: p.name,
+        tagline: p.description || `Created in Meta Muse & synced via ${p.source.toUpperCase()}`,
+        packageName: `app.metamuse.${slug.slice(0, 20)}`,
+        version: p.version ? `v${p.version.replace(/^v/, '')}` : 'v1.0.0',
+        category: p.tags?.[0] || 'Creator App',
+        status: p.status === 'deployed' || p.status === 'active' ? 'Live in Meta Muse' : 'In Active Creation',
+        externalUrl: p.previewUrl || p.url || p.driveViewUrl || 'https://github.com/grogusmom1989',
+        repoUrl: p.url,
+        accentGradient: 'from-indigo-600/25 via-purple-600/15 to-pink-600/15 border-indigo-500/35',
+        badgeText: p.language || 'My Creation',
+      };
+    });
+
+  const dynamicRepoApps: CreatorStoreApp[] = githubRepos
+    .filter(
+      (r) =>
+        !dynamicProjectApps.some(
+          (p) => p.name.toLowerCase() === r.name.toLowerCase()
+        )
+    )
+    .slice(0, 12)
+    .map((r) => {
+      const slug = r.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'repo';
+      return {
+        id: `repo-app-${r.id}`,
+        name: r.name,
+        tagline: r.description || `GitHub repository (${r.full_name}) packaged in Meta Muse Store`,
+        packageName: `app.metamuse.${slug.slice(0, 20)}`,
+        version: 'v1.0-git',
+        category: r.language || 'GitHub App',
+        status: 'In Active Creation',
+        externalUrl: r.html_url,
+        repoUrl: r.html_url,
+        accentGradient: 'from-violet-600/25 via-indigo-600/15 to-slate-800/40 border-violet-500/35',
+        badgeText: r.language || 'GitHub Repo',
+      };
+    });
+
+  const allMetaMuseCreatorApps: CreatorStoreApp[] = [
+    ...customCreatorApps,
+    ...BUILTIN_META_MUSE_APPS,
+    ...dynamicProjectApps,
+    ...dynamicRepoApps,
+  ];
+
+  const displayedMetaMuseApps = allMetaMuseCreatorApps.filter((app) => {
+    if (creatorStoreFilter === 'flagship') {
+      return app.id.startsWith('muse-app-') || app.id.startsWith('custom-muse-');
+    }
+    if (creatorStoreFilter === 'repos') {
+      return app.id.startsWith('proj-app-') || app.id.startsWith('repo-app-');
+    }
+    return true;
+  });
+
+  const handlePublishNewCreatorApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCreatorAppName.trim()) return;
+
+    const cleanName = newCreatorAppName.trim();
+    const slug = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'newapp';
+    const pkg = `app.metamuse.${slug.slice(0, 22)}`;
+    const launchUrl =
+      newCreatorAppUrl.trim() ||
+      'https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app';
+
+    const newApp: CreatorStoreApp = {
+      id: `custom-muse-${Date.now()}`,
+      name: cleanName,
+      tagline:
+        newCreatorAppTagline.trim() ||
+        `Original creator app published to Meta Muse App Store (${pkg}).`,
+      packageName: pkg,
+      version: 'v1.0.0',
+      category: newCreatorAppCategory.trim() || 'Meta Muse Creation',
+      status: 'Live in Meta Muse',
+      externalUrl: launchUrl,
+      repoUrl: 'https://github.com/grogusmom1989',
+      accentGradient: 'from-fuchsia-600/30 via-pink-600/20 to-indigo-600/20 border-fuchsia-400/50',
+      badgeText: 'Meta Muse Original',
+    };
+
+    setCustomCreatorApps((prev) => [newApp, ...prev]);
+
+    // Also pin into the universal shortcut matrix
+    const shortcut: AppStoreShortcut = {
+      id: `custom-app-${Date.now()}`,
+      name: cleanName,
+      category: 'Meta Muse (My Apps)',
+      packageName: pkg,
+      webUrl: launchUrl,
+      playStoreUrl: `https://play.google.com/store/search?q=${encodeURIComponent(cleanName)}&c=apps`,
+      appStoreUrl: 'https://github.com/grogusmom1989',
+      badgeColor: 'text-fuchsia-300 border-fuchsia-500/40 bg-fuchsia-500/15',
+      description: newApp.tagline,
+    };
+    setCustomShortcuts((prev) => [shortcut, ...prev]);
+
+    // Also register in Workspace Projects so it syncs to Firestore in the background
+    if (onAddProject) {
+      onAddProject({
+        name: cleanName,
+        description: newApp.tagline,
+        status: 'deployed',
+        source: 'custom',
+        url: launchUrl,
+        previewUrl: launchUrl,
+        tags: ['MetaMuse', 'MyAppStore', 'GooglePlayReady'],
+        techStack: ['React', 'TypeScript', 'Meta Muse SDK'],
+        isPinned: true,
+        version: '1.0.0',
+      });
+    }
+
+    setNewCreatorAppName('');
+    setNewCreatorAppTagline('');
+    setNewCreatorAppUrl('');
+    setShowPublishCreatorAppModal(false);
+  };
+
+  const handleShareCreatorAppToMeta = (app: CreatorStoreApp) => {
+    const shareTitle = `New on Meta Muse App Store: ${app.name} (${app.version})`;
+    const shareBody = `🚀 Just published "${app.name}" (${app.packageName}) in my Meta Muse Creator App Store! ${app.tagline} ✨ Available now with background cloud sync & Google Play readiness.`;
+    setPostTitle(shareTitle);
+    setPostContent(shareBody);
+    setSelectedProject(app.name);
+    setTagsInput('MetaMuse, MyAppStore, BuildInPublic, MetaReels, GooglePlay');
+
+    onAddPost({
+      title: shareTitle,
+      content: shareBody,
+      platforms: selectedPlatforms,
+      linkedProjectName: app.name,
+      sourceModule: 'social',
+      status: navigator.onLine ? 'published' : 'queued_background',
+      autoSyncBackground: true,
+      tags: ['MetaMuse', 'CreatorAppStore', 'GooglePlay', 'Meta'],
+    });
+  };
 
   const allAppShortcuts = [...customShortcuts, ...DEFAULT_APP_SHORTCUTS];
 
@@ -541,7 +957,7 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
 
     const computedTitle =
       postTitle.trim() ||
-      `${selectedProject || 'OmniSync'} Broadcast — ${postContent.trim().slice(0, 42)}`;
+      `${selectedProject || 'Meta Muse'} Broadcast — ${postContent.trim().slice(0, 42)}`;
 
     onAddPost({
       title: computedTitle,
@@ -559,35 +975,42 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
     setPostContent('');
   };
 
-  const applyTemplate = (templateType: 'reiki' | 'kiki' | 'github' | 'paypal') => {
-    if (templateType === 'reiki') {
+  const applyTemplate = (templateType: 'metamuse' | 'reiki' | 'kiki' | 'github' | 'paypal') => {
+    if (templateType === 'metamuse') {
+      setPostTitle('Meta Muse App Store — All My Creator Apps Live in One Place');
+      setPostContent(
+        '🌟 Welcome to Meta Muse! Explore my personal Creator App Store featuring OmniSync Hub, 1D World & 528Hz Reiki HQ, Kiki’s World 2.0, KikiOS, and universal shortcuts to every Google Play & App Store app!'
+      );
+      setSelectedProject('Meta Muse App Store');
+      setTagsInput('MetaMuse, CreatorAppStore, MetaReels, GooglePlay, BuildInPublic');
+    } else if (templateType === 'reiki') {
       setPostTitle('528Hz Miracle Tone & Quantum Reiki Drop');
       setPostContent(
-        '✨ 528Hz Miracle Tone & Quantum Reiki Alignment session is live! Tune your meridian field and experience cellular harmony in 1D World & Reiki HQ.'
+        '✨ 528Hz Miracle Tone & Quantum Reiki Alignment session is live through Meta Muse! Tune your meridian field and experience cellular harmony in 1D World & Reiki HQ.'
       );
       setSelectedProject('1D World & Reiki HQ');
-      setTagsInput('Reiki, 528Hz, SoundHealing, MetaReels');
+      setTagsInput('MetaMuse, Reiki, 528Hz, SoundHealing, MetaReels');
     } else if (templateType === 'kiki') {
       setPostTitle("Kiki's World 2.0 — Daily Divine Oracle & Crystal Grid");
       setPostContent(
-        "🔮 New Daily Divine Oracle Card & Crystal Grid activation inside Kiki's World 2.0! Watch the audio-reactive cinema stream now."
+        "🔮 New Daily Divine Oracle Card & Crystal Grid activation inside Kiki's World 2.0 on Meta Muse! Watch the audio-reactive cinema stream now."
       );
       setSelectedProject("Kiki's World 2.0");
-      setTagsInput('KikisWorld, CrystalHealing, OracleDeck, InstagramReels');
+      setTagsInput('MetaMuse, KikisWorld, CrystalHealing, OracleDeck, InstagramReels');
     } else if (templateType === 'github') {
-      setPostTitle('OmniSync Hub Release — Background Daemon & Play Store App');
+      setPostTitle('Meta Muse & OmniSync Release — Play Store App & Background Daemon');
       setPostContent(
-        '🚀 Shipped a new update to OmniSync Hub (@grogusmom1989) with continuous background cloud sync, offline outbox queueing, and Google Play Store TWA packaging!'
+        '🚀 Shipped a new update to Meta Muse & OmniSync Hub (@grogusmom1989) with continuous background cloud sync, my own Creator App Store, and Google Play Store TWA packaging!'
       );
       setSelectedProject('OmniSync Hub');
-      setTagsInput('GitHub, BuildInPublic, React, GooglePlay');
+      setTagsInput('MetaMuse, GitHub, BuildInPublic, React, GooglePlay');
     } else {
-      setPostTitle('Support Creator Studio & Reiki Healing Sessions');
+      setPostTitle('Support Meta Muse Creator Studio & Reiki Healing Sessions');
       setPostContent(
-        '💖 Support our Reiki sessions, sound healing instruments, and open-source creator tools directly via PayPal (@grogusmom1989)!'
+        '💖 Support our Meta Muse apps, Reiki sessions, sound healing instruments, and open-source creator tools directly via PayPal (@grogusmom1989)!'
       );
       setSelectedProject('Creator Earnings & PayPal Hub');
-      setTagsInput('CreatorEconomy, PayPal, SupportCreators, Meta');
+      setTagsInput('MetaMuse, CreatorEconomy, PayPal, SupportCreators, Meta');
     }
   };
 
@@ -626,32 +1049,46 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Hero Banner — Built the Exact Same Way as Standalone App */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-950/90 via-indigo-950/85 to-pink-950/80 border border-indigo-500/30 shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+      {/* Top Hero Banner — Meta Muse: Personal Creator App Store + Universal Social Command App */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-fuchsia-950/90 via-indigo-950/90 to-blue-950/90 border border-fuchsia-500/35 shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold">
-            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span>Meta Ecosystem, Social Media & Universal App Store Hub</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-500/20 border border-fuchsia-400/35 text-fuchsia-200 text-xs font-semibold">
+            <Crown className="w-3.5 h-3.5 text-amber-300" />
+            <span>Meta Muse • My Own Creator App Store + Every App Store &amp; Social Network</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            Meta, Social Media &amp; Every App Store Command App
+            Meta Muse: My Creator App Store, Meta &amp; Universal App Hub
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
-            Built the exact same way as a standalone app — persistent login, autonomous background sync daemon, offline localStorage Outbox, Firestore Cloud backup, and direct shortcuts to{' '}
+          <p className="text-xs sm:text-sm text-slate-200 max-w-3xl leading-relaxed">
+            Powered through <strong className="text-fuchsia-300">Meta Muse</strong> — featuring{' '}
             <strong className="text-white">
-              Google Play Store, Apple App Store, Meta Quest Store, Samsung Galaxy Store, Amazon Appstore, Microsoft Store, Meta (Facebook, Instagram, Threads, WhatsApp), TikTok, YouTube &amp; 25+ apps
-            </strong>.
+              your own personal Creator App Store ({allMetaMuseCreatorApps.length} apps you&apos;re creating)
+            </strong>{' '}
+            right alongside instant shortcuts to{' '}
+            <strong className="text-emerald-300">
+              Google Play Store, Apple App Store, Meta Horizon Store, Samsung Galaxy Store, Amazon Appstore, Meta (Facebook, Instagram, Threads, WhatsApp), TikTok, YouTube &amp; 30+ apps
+            </strong>{' '}
+            with continuous background sync.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowPublishCreatorAppModal((prev) => !prev)}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-fuchsia-600/25 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Publish App to Meta Muse</span>
+          </button>
+
           <button
             onClick={onSyncSocialBackground}
             disabled={isSyncing}
             className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Syncing Socials...' : 'Sync Meta & Socials'}</span>
+            <span>{isSyncing ? 'Syncing Meta Muse...' : 'Sync Meta & Apps'}</span>
           </button>
 
           <button
@@ -659,24 +1096,276 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
             className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
           >
             <Smartphone className="w-4 h-4" />
-            <span>Install / Google Play Packager</span>
+            <span>Google Play (.aab) Packager</span>
           </button>
         </div>
       </div>
 
-      {/* UNIVERSAL GOOGLE PLAY & EVERY APP STORE SHORTCUT DOCK */}
+      {/* SECTION 1: META MUSE — MY OWN CREATOR APP STORE (ALL APPS I'M CREATING) */}
+      <div
+        id="meta-muse-creator-store"
+        className="bg-gradient-to-b from-slate-900 via-indigo-950/35 to-slate-900 border border-fuchsia-500/35 rounded-2xl p-5 space-y-5 shadow-xl"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/90 pb-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-fuchsia-400">
+              <Rocket className="w-3.5 h-3.5" />
+              <span>Meta Muse Official Storefront • @grogusmom1989 Creator Ecosystem</span>
+            </div>
+            <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+              <span>My Own App Store — Apps I&apos;m Creating Through Meta Muse</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-fuchsia-500/20 border border-fuchsia-400/40 text-fuchsia-200">
+                {allMetaMuseCreatorApps.length} Apps
+              </span>
+            </h2>
+            <p className="text-xs text-slate-300">
+              Every app, spiritual studio, spatial OS, and GitHub project you are building — launch directly in-app, package as an Android Google Play bundle (`.aab`), or broadcast to Meta &amp; Socials in one click.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { id: 'all', label: `All My Apps (${allMetaMuseCreatorApps.length})` },
+              {
+                id: 'flagship',
+                label: `Flagship Suite (${BUILTIN_META_MUSE_APPS.length + customCreatorApps.length})`,
+              },
+              {
+                id: 'repos',
+                label: `Synced Projects & Repos (${dynamicProjectApps.length + dynamicRepoApps.length})`,
+              },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setCreatorStoreFilter(tab.id as 'all' | 'flagship' | 'repos')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                  creatorStoreFilter === tab.id
+                    ? 'bg-fuchsia-500/25 border-fuchsia-400 text-fuchsia-200 shadow-sm'
+                    : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setShowPublishCreatorAppModal((prev) => !prev)}
+              className="px-3.5 py-1.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add My New App</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Publish New Creator App Form */}
+        {showPublishCreatorAppModal && (
+          <form
+            onSubmit={handlePublishNewCreatorApp}
+            className="p-4 rounded-xl bg-slate-950 border border-fuchsia-500/50 space-y-3 shadow-inner"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-fuchsia-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4" />
+                <span>Publish a New App You&apos;re Creating to Your Meta Muse App Store</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowPublishCreatorAppModal(false)}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">App Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={newCreatorAppName}
+                  onChange={(e) => setNewCreatorAppName(e.target.value)}
+                  placeholder="e.g. Meta Muse Tarot & Sound Studio"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white outline-none focus:border-fuchsia-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">Category</label>
+                <input
+                  type="text"
+                  value={newCreatorAppCategory}
+                  onChange={(e) => setNewCreatorAppCategory(e.target.value)}
+                  placeholder="e.g. Spiritual & Audio, AI Tool, Social"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white outline-none focus:border-fuchsia-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">Description / Tagline</label>
+                <input
+                  type="text"
+                  value={newCreatorAppTagline}
+                  onChange={(e) => setNewCreatorAppTagline(e.target.value)}
+                  placeholder="What does this app do?"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white outline-none focus:border-fuchsia-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">Live App / Repo URL (Optional)</label>
+                <input
+                  type="text"
+                  value={newCreatorAppUrl}
+                  onChange={(e) => setNewCreatorAppUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white outline-none focus:border-fuchsia-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-400 hover:to-pink-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+              >
+                <Rocket className="w-3.5 h-3.5" />
+                <span>Publish to Meta Muse Store &amp; Sync in Background</span>
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Grid of All Apps in the User's Meta Muse Creator App Store */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {displayedMetaMuseApps.map((app) => (
+            <div
+              key={app.id}
+              className={`p-4 rounded-xl bg-gradient-to-br ${app.accentGradient} border flex flex-col justify-between gap-3.5 transition-all hover:scale-[1.01] shadow-md`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-950/80 text-fuchsia-300 border border-white/10">
+                    {app.badgeText}
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded">
+                    {app.version}
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-black text-white leading-snug">{app.name}</h3>
+                  <div className="text-[10px] font-mono text-slate-300/80 mt-0.5">
+                    {app.packageName}
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-200/90 line-clamp-2 leading-relaxed">
+                  {app.tagline}
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-slate-300 font-medium">{app.category}</span>
+                  <span className="text-emerald-300 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> {app.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-1.5">
+                  {app.internalTab && onSelectTab ? (
+                    <button
+                      type="button"
+                      onClick={() => onSelectTab(app.internalTab!)}
+                      className="px-2 py-1.5 rounded-lg bg-white text-slate-950 hover:bg-fuchsia-100 text-[10px] font-extrabold flex items-center justify-center gap-1 shadow-sm transition-colors"
+                      title={`Open ${app.name} inside suite`}
+                    >
+                      <Play className="w-2.5 h-2.5 fill-current" />
+                      <span>Open App</span>
+                    </button>
+                  ) : (
+                    <a
+                      href={app.externalUrl || 'https://github.com/grogusmom1989'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2 py-1.5 rounded-lg bg-white text-slate-950 hover:bg-fuchsia-100 text-[10px] font-extrabold flex items-center justify-center gap-1 shadow-sm transition-colors"
+                    >
+                      <span>Launch</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={onOpenPlayStore}
+                    className="px-2 py-1.5 rounded-lg bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-400/40 text-emerald-200 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    title="Package this app for Google Play Store (.aab)"
+                  >
+                    <Download className="w-2.5 h-2.5" />
+                    <span>Play .AAB</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleShareCreatorAppToMeta(app)}
+                    className="px-2 py-1.5 rounded-lg bg-fuchsia-500/25 hover:bg-fuchsia-500/40 border border-fuchsia-400/40 text-fuchsia-100 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    title="Promote this app across Meta & Social Media"
+                  >
+                    <Share2 className="w-2.5 h-2.5" />
+                    <span>Share</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom quick link to Full Projects & Remixed App Studio */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80 text-xs text-slate-300">
+          <div className="flex items-center gap-2">
+            <Code2 className="w-4 h-4 text-fuchsia-400" />
+            <span>
+              All apps created in <strong>Remixed App Studio</strong> or imported into{' '}
+              <strong>My Projects</strong> automatically appear in your Meta Muse App Store.
+            </span>
+          </div>
+          {onSelectTab && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onSelectTab('remix')}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-fuchsia-300 font-bold text-xs border border-slate-700 flex items-center gap-1.5"
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Open Remixed App Studio</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTab('projects')}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold text-xs border border-slate-700 flex items-center gap-1.5"
+              >
+                <FolderGit2 className="w-3.5 h-3.5" />
+                <span>Manage All Projects ({projects.length})</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SECTION 2: UNIVERSAL GOOGLE PLAY & EVERY APP STORE SHORTCUT DOCK */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 shadow-lg">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Universal App Store Launcher • Google Play &amp; Every App Store</span>
+              <span>Universal App Store Launcher • Meta Muse + Google Play + Every App Store</span>
             </div>
             <h2 className="text-base sm:text-lg font-black text-white">
-              Google Play &amp; All App Stores Shortcut Matrix ({allAppShortcuts.length} App Shortcuts + 8 Global App Stores)
+              Google Play &amp; All App Stores Shortcut Matrix ({allAppShortcuts.length} App Shortcuts + 8 App Stores)
             </h2>
             <p className="text-xs text-slate-400">
-              Instant 1-click shortcuts to every major App Store and direct deep links to launch or install any app on Google Play, Apple App Store, Meta Store, or Web.
+              Instant 1-click shortcuts to your own Meta Muse App Store, Google Play Store, Apple App Store, Meta Horizon Store, Galaxy Store, Amazon Appstore, and 30+ flagship apps.
             </p>
           </div>
 
@@ -687,16 +1376,16 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
               className="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 text-xs font-bold flex items-center gap-1.5 transition-all"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Pin Custom Google Play / App Store Shortcut</span>
+              <span>Pin Any Google Play / App Store Shortcut</span>
             </button>
           </div>
         </div>
 
-        {/* 1. Every Major App Store Direct Shortcuts (8 Stores) */}
+        {/* 1. Every Major App Store Direct Shortcuts (Including Meta Muse Store at #1) */}
         <div>
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
             <Compass className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Every App Store Direct Portal (Click to Open Store or Search Directly)</span>
+            <span>Every App Store Direct Portal (Meta Muse Store, Google Play, Apple, Meta, Samsung, Amazon, Microsoft, APK)</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {MAJOR_APP_STORES.map((store) => (
@@ -715,15 +1404,31 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">
-                  <a
-                    href={store.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-950/80 hover:bg-slate-950 text-white text-[11px] font-semibold flex items-center justify-center gap-1 border border-white/10 transition-colors"
-                  >
-                    <span>Open Store</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  {store.isInternalAnchor ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAppCategory('Meta Muse (My Apps)');
+                        document
+                          .getElementById('meta-muse-creator-store')
+                          ?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="flex-1 px-2.5 py-1.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <Crown className="w-3 h-3" />
+                      <span>Browse My Apps ({allMetaMuseCreatorApps.length})</span>
+                    </button>
+                  ) : (
+                    <a
+                      href={store.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-950/80 hover:bg-slate-950 text-white text-[11px] font-semibold flex items-center justify-center gap-1 border border-white/10 transition-colors"
+                    >
+                      <span>Open Store</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                   {storeSearchQuery.trim() && (
                     <a
                       href={store.searchUrl(storeSearchQuery.trim())}
@@ -812,7 +1517,7 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
           </form>
         )}
 
-        {/* 2. Search & Filter Bar across Google Play + All App Stores */}
+        {/* 2. Search & Filter Bar across Meta Muse + Google Play + All App Stores */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-1">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -820,7 +1525,7 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
               type="text"
               value={storeSearchQuery}
               onChange={(e) => setStoreSearchQuery(e.target.value)}
-              placeholder="Search any Google Play or App Store app (e.g. Instagram, CapCut, WhatsApp, TikTok, PayPal, Netflix)..."
+              placeholder="Search Meta Muse apps, Google Play, or App Store (e.g. Meta Muse, 1D World, Instagram, CapCut, WhatsApp, TikTok)..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-emerald-500 text-xs text-white placeholder:text-slate-500 outline-none"
             />
           </div>
@@ -851,25 +1556,34 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
 
         {/* Category Filter Tabs */}
         <div className="flex flex-wrap items-center gap-1.5">
-          {['All', 'Meta & Social', 'Creator & Video', 'Google & Cloud', 'Finance & Pay', 'AI & Dev', 'Custom'].map(
-            (cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedAppCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                  selectedAppCategory === cat
-                    ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {cat}
-              </button>
-            )
-          )}
+          {[
+            'All',
+            'Meta Muse (My Apps)',
+            'Meta & Social',
+            'Creator & Video',
+            'Google & Cloud',
+            'Finance & Pay',
+            'AI & Dev',
+            'Custom',
+          ].map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedAppCategory(cat)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                selectedAppCategory === cat
+                  ? cat === 'Meta Muse (My Apps)'
+                    ? 'bg-fuchsia-500/25 border-fuchsia-400 text-fuchsia-200'
+                    : 'bg-emerald-500/20 border-emerald-400 text-emerald-200'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
-        {/* 3. Grid of All Google Play & App Store App Shortcuts */}
+        {/* 3. Grid of All Meta Muse, Google Play & App Store App Shortcuts */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {filteredAppShortcuts.map((app) => (
             <div
@@ -908,16 +1622,27 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
               </div>
 
               <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-800/80">
-                <a
-                  href={app.webUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-2 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/30 text-indigo-200 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
-                  title={`Launch ${app.name}`}
-                >
-                  <span>Launch</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
+                {app.internalTab && onSelectTab ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectTab(app.internalTab!)}
+                    className="px-2 py-1.5 rounded-lg bg-fuchsia-600/25 hover:bg-fuchsia-600/40 border border-fuchsia-500/40 text-fuchsia-200 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <Play className="w-2.5 h-2.5 fill-current" />
+                    <span>Open</span>
+                  </button>
+                ) : (
+                  <a
+                    href={app.webUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/30 text-indigo-200 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    title={`Launch ${app.name}`}
+                  >
+                    <span>Launch</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
 
                 <a
                   href={app.playStoreUrl}
@@ -935,7 +1660,7 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
                   target="_blank"
                   rel="noreferrer"
                   className="px-2 py-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
-                  title={`Open ${app.name} in Apple App Store`}
+                  title={`Open ${app.name} in Apple App Store / Repo`}
                 >
                   <span>App Store</span>
                 </a>
@@ -945,7 +1670,7 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
         </div>
       </div>
 
-      {/* Omni-Channel Broadcast Composer & Templates */}
+      {/* SECTION 3: META MUSE OMNI-CHANNEL BROADCAST COMPOSER & TEMPLATES */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <form
           onSubmit={handleBroadcastPost}
@@ -954,11 +1679,11 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-pink-400" />
-                <span>Cross-Platform Meta &amp; Social Broadcast Composer</span>
+                <Sparkles className="w-4 h-4 text-fuchsia-400" />
+                <span>Meta Muse Cross-Platform Social Broadcast Composer</span>
               </h2>
               <p className="text-[11px] text-slate-400">
-                Compose once — dispatches in the background &amp; queues in your persistent Outbox if offline
+                Compose once through Meta Muse — syndicates in the background &amp; queues in your persistent Outbox if offline
               </p>
             </div>
 
@@ -982,8 +1707,9 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
 
           {/* Quick Templates */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-slate-400 font-medium">1-Click Templates:</span>
+            <span className="text-[11px] text-slate-400 font-medium">Meta Muse Templates:</span>
             {[
+              { id: 'metamuse', label: 'Meta Muse Store Launch' },
               { id: 'reiki', label: '528Hz Reiki Drop' },
               { id: 'kiki', label: "Kiki's World Reel" },
               { id: 'github', label: 'GitHub / App Release' },
@@ -992,7 +1718,9 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
               <button
                 key={tpl.id}
                 type="button"
-                onClick={() => applyTemplate(tpl.id as 'reiki' | 'kiki' | 'github' | 'paypal')}
+                onClick={() =>
+                  applyTemplate(tpl.id as 'metamuse' | 'reiki' | 'kiki' | 'github' | 'paypal')
+                }
                 className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] border border-slate-700 transition-colors"
               >
                 {tpl.label}
@@ -1037,14 +1765,14 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
               type="text"
               value={postTitle}
               onChange={(e) => setPostTitle(e.target.value)}
-              placeholder="Broadcast Headline / Campaign Title (Optional)..."
+              placeholder="Meta Muse Broadcast Headline / Campaign Title (Optional)..."
               className="w-full rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-500 outline-none"
             />
             <textarea
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
               rows={4}
-              placeholder="Write your Meta Reel caption, Threads post, Facebook update, or YouTube/TikTok description..."
+              placeholder="Write your Meta Muse announcement, Instagram Reel caption, Threads post, Facebook update, or YouTube/TikTok description..."
               className="w-full rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 p-3.5 text-xs text-slate-100 placeholder:text-slate-500 outline-none resize-none leading-relaxed"
             />
           </div>
@@ -1071,16 +1799,19 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
 
             <div>
               <label className="block text-[11px] text-slate-400 mb-1">
-                Link Portfolio Project
+                Link Meta Muse App / Project
               </label>
               <select
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 outline-none"
               >
+                <option value="Meta Muse App Store">Meta Muse App Store</option>
                 <option value="OmniSync Hub">OmniSync Hub</option>
                 <option value="1D World & Reiki HQ">1D World &amp; Reiki HQ</option>
                 <option value="Kiki's World 2.0">Kiki&apos;s World 2.0</option>
+                <option value="KikiOS Cyber-Deck">KikiOS Cyber-Deck</option>
+                <option value="Remixed App Studio">Remixed App Studio</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.name}>
                     {p.name}
@@ -1103,7 +1834,7 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
             <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Background Syndication Daemon &amp; Offline Outbox Ready</span>
+              <span>Meta Muse Background Syndication Daemon &amp; Offline Outbox Active</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -1112,9 +1843,9 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
                 onClick={() => {
                   if (!postContent.trim()) return;
                   onAddNote({
-                    title: `Social Draft: ${postTitle.trim() || postContent.slice(0, 36)}...`,
+                    title: `Meta Muse Draft: ${postTitle.trim() || postContent.slice(0, 36)}...`,
                     content: postContent,
-                    tags: ['SocialMedia', 'Meta', 'Draft'],
+                    tags: ['MetaMuse', 'SocialMedia', 'Meta', 'Draft'],
                     pinned: true,
                   });
                 }}
@@ -1126,10 +1857,10 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
               <button
                 type="submit"
                 disabled={!postContent.trim() || selectedPlatforms.length === 0}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 hover:from-blue-500 hover:to-pink-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all"
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-fuchsia-600/25 transition-all"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Broadcast &amp; Sync in Background</span>
+                <span>Broadcast Through Meta Muse</span>
               </button>
             </div>
           </div>
@@ -1139,11 +1870,11 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Globe className="w-4 h-4 text-blue-400" />
-              <span>Meta Business &amp; Creator Studios</span>
+              <Globe className="w-4 h-4 text-fuchsia-400" />
+              <span>Meta Muse &amp; Meta Creator Studios</span>
             </h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Launch native Meta Business Suite, Instagram Reels Composer, Threads, or TikTok Studio while OmniSync keeps your assets, captions, and Drive files synced in the background.
+              Launch Meta Business Suite, Meta AI, Instagram Reels Composer, Threads, or YouTube Studio while Meta Muse keeps your apps, captions, and Drive assets synced in the background.
             </p>
 
             <div className="space-y-2 pt-1">
@@ -1153,6 +1884,12 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
                   desc: 'Facebook Pages, IG Reels & Insights',
                   url: 'https://business.facebook.com/latest/home',
                   color: 'text-blue-400 border-blue-500/30 bg-blue-500/10',
+                },
+                {
+                  name: 'Meta AI & Creative Muse',
+                  desc: 'Visual prompts, Reels & Meta AI studio',
+                  url: 'https://www.meta.ai',
+                  color: 'text-fuchsia-300 border-fuchsia-500/30 bg-fuchsia-500/10',
                 },
                 {
                   name: 'Instagram Creator Studio',
@@ -1171,12 +1908,6 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
                   desc: 'Channel analytics & video uploads',
                   url: 'https://studio.youtube.com',
                   color: 'text-rose-400 border-rose-500/30 bg-rose-500/10',
-                },
-                {
-                  name: 'TikTok Creator Center',
-                  desc: 'Short-form video & sound sync',
-                  url: 'https://www.tiktok.com/creator-center',
-                  color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10',
                 },
               ].map((studio) => (
                 <a
@@ -1202,10 +1933,10 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/30 text-xs text-indigo-200 flex items-center justify-between">
-            <span>Background Social Daemon:</span>
+          <div className="p-3.5 rounded-xl bg-fuchsia-950/30 border border-fuchsia-500/30 text-xs text-fuchsia-200 flex items-center justify-between">
+            <span>Meta Muse Daemon:</span>
             <span className="font-mono text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Active (Auto-Sync)
+              <CheckCircle2 className="w-3.5 h-3.5" /> Active (24/7 Auto-Sync)
             </span>
           </div>
         </div>
@@ -1220,7 +1951,7 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
               <span>Connected Meta &amp; Social Media Channels ({accounts.length})</span>
             </h3>
             <p className="text-xs text-slate-400">
-              All channels are wired into the autonomous background sync loop and linked to your Projects Portfolio.
+              All channels are wired into the autonomous Meta Muse background sync loop and linked to your Creator App Store.
             </p>
           </div>
         </div>
@@ -1300,8 +2031,8 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Share2 className="w-4 h-4 text-indigo-400" />
-            <span>Meta &amp; Social Syndication Stream ({posts.length})</span>
+            <Share2 className="w-4 h-4 text-fuchsia-400" />
+            <span>Meta Muse &amp; Social Syndication Stream ({posts.length})</span>
           </h3>
         </div>
 
@@ -1326,8 +2057,8 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
                     <span className="text-xs font-bold text-white">{post.title}</span>
                   )}
                   {post.linkedProjectName && (
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                      Project: {post.linkedProjectName}
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30">
+                      App: {post.linkedProjectName}
                     </span>
                   )}
                   {post.mediaFileName && (
@@ -1355,7 +2086,7 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
                     );
                   })}
                   {post.tags.map((tag) => (
-                    <span key={tag} className="text-[10px] text-indigo-400 font-mono">
+                    <span key={tag} className="text-[10px] text-fuchsia-400 font-mono">
                       #{tag}
                     </span>
                   ))}
@@ -1374,12 +2105,12 @@ export const SocialMediaView: React.FC<SocialMediaViewProps> = ({
                 <button
                   onClick={() =>
                     onAddTask({
-                      title: `Follow up engagement on: "${post.content.slice(0, 38)}..."`,
+                      title: `Follow up Meta Muse engagement on: "${post.content.slice(0, 38)}..."`,
                       description: `Respond to comments & DMs across ${post.platforms.join(', ')}`,
                       status: 'todo',
                       priority: 'medium',
                       source: 'manual',
-                      tags: ['SocialMedia', 'Meta'],
+                      tags: ['MetaMuse', 'SocialMedia', 'Meta'],
                     })
                   }
                   className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs flex items-center gap-1"

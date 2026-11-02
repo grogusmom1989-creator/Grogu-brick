@@ -98,10 +98,10 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               onClick={() => onSelectTab('social')}
-              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20"
+              className="px-3.5 py-2 bg-gradient-to-r from-fuchsia-500 to-emerald-400 hover:from-fuchsia-400 hover:to-emerald-300 text-slate-950 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-md shadow-fuchsia-500/20"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>Meta &amp; App Stores</span>
+              <span>Meta Muse &amp; App Stores</span>
             </button>
 
             <button
@@ -124,30 +124,40 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         </div>
       </div>
 
-      {/* Instant Meta, Social Media & Every App Store Shortcut Bar */}
-      <div className="bg-gradient-to-r from-blue-950/60 via-indigo-950/50 to-emerald-950/50 border border-indigo-500/30 rounded-2xl p-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-sm">
+      {/* Instant Meta Muse, Creator App Store & Universal App Store Shortcut Bar */}
+      <div className="bg-gradient-to-r from-fuchsia-950/65 via-indigo-950/60 to-emerald-950/55 border border-fuchsia-500/35 rounded-2xl p-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-sm">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full bg-fuchsia-500/25 border border-fuchsia-400/40 text-fuchsia-200 text-[10px] font-bold uppercase tracking-wider">
+              Meta Muse Store Live
+            </span>
             <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
               Background Daemon Active
             </span>
             <span className="text-xs font-bold text-white">
-              Meta Ecosystem, Social Media &amp; Universal App Store Shortcuts
+              Meta Muse: My Creator App Store + Google Play, Apple App Store &amp; All Socials
             </span>
           </div>
           <p className="text-[11px] text-slate-300">
-            1-click access to Google Play Store, Apple App Store, Meta Business Suite, Instagram, Threads, Facebook, WhatsApp, TikTok, YouTube &amp; 25+ apps.
+            Includes your own <strong className="text-fuchsia-300">Meta Muse Creator App Store</strong> (all the apps you&apos;re creating) plus 1-click shortcuts to Google Play, Apple App Store, Meta Suite, Instagram, Threads, Facebook, WhatsApp, TikTok &amp; YouTube.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={() => onSelectTab('social')}
+            className="px-3 py-1.5 rounded-lg bg-fuchsia-500/25 hover:bg-fuchsia-500/35 border border-fuchsia-400/40 text-fuchsia-200 text-xs font-bold flex items-center gap-1"
+          >
+            <span>My Meta Muse App Store</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
           <a
             href="/build-playstore.sh"
             download="build-playstore.sh"
             className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold flex items-center gap-1 shadow-sm"
             title="Download 1-Click Google Play Store (.aab) Build Script"
           >
-            <span>Download Play Store Builder (.sh)</span>
+            <span>Download Play Builder (.sh)</span>
           </a>
           <a
             href="https://play.google.com/store/apps"
@@ -167,20 +177,11 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             <span>App Store</span>
             <ExternalLink className="w-3 h-3" />
           </a>
-          <a
-            href="https://business.facebook.com/latest/home"
-            target="_blank"
-            rel="noreferrer"
-            className="px-3 py-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-semibold flex items-center gap-1"
-          >
-            <span>Meta Suite</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
           <button
             onClick={() => onSelectTab('social')}
-            className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-pink-600 hover:from-blue-500 hover:to-pink-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
           >
-            <span>Open All 25+ App Shortcuts</span>
+            <span>Open Meta Muse &amp; All Stores</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

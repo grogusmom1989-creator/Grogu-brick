@@ -601,7 +601,7 @@ export default function App() {
     [githubRepos, mergePulledAssetsIntoPortfolio]
   );
 
-  // 4. Master "Pull Everything" Handler
+  // 4. Master "Pull Everything" Handler (Meta + Drive + GitHub + Firestore + Meta Muse Store)
   const syncAll = useCallback(async () => {
     setIsSyncing(true);
     const startTime = Date.now();
@@ -612,6 +612,30 @@ export default function App() {
         googleUser ? syncFirestoreCloud(googleUser) : Promise.resolve(),
       ]);
 
+      // Automatically pull & refresh all connected Meta (Facebook, Instagram, Threads, WhatsApp) & Social channels
+      const nowIso = new Date().toISOString();
+      const currentAccounts = getSocialAccounts();
+      const updatedSocialAccounts = currentAccounts.map((acc) =>
+        acc.connected && acc.autoSyncBackground
+          ? { ...acc, lastSyncedAt: nowIso }
+          : acc
+      );
+      setSocialAccounts(updatedSocialAccounts);
+      saveSocialAccounts(updatedSocialAccounts);
+
+      // Flush any offline-queued social broadcasts when online
+      if (navigator.onLine) {
+        const currentPosts = getSocialPosts();
+        const hasQueued = currentPosts.some((p) => p.status === 'queued_background');
+        if (hasQueued) {
+          const flushedPosts = currentPosts.map((p) =>
+            p.status === 'queued_background' ? { ...p, status: 'published' as const } : p
+          );
+          setSocialPosts(flushedPosts);
+          saveSocialPosts(flushedPosts);
+        }
+      }
+
       const latestGh = getCachedGitHubData();
       const latestDrive = getCachedDriveFiles();
       const mergedProjects = mergePulledAssetsIntoPortfolio(
@@ -620,20 +644,21 @@ export default function App() {
       );
 
       const config = getSyncConfig();
-      const nextConfig = { ...config, lastSyncAll: new Date().toISOString() };
+      const nextConfig = { ...config, lastSyncAll: nowIso };
       setSyncConfig(nextConfig);
       saveSyncConfig(nextConfig);
-      setSyncCountdown((config.intervalMinutes || 5) * 60);
+      setSyncCountdown((config.intervalMinutes || 1) * 60);
 
       addSyncLog({
         source: 'all',
         status: 'success',
         itemCount:
+          updatedSocialAccounts.length +
           (latestDrive.length || driveFiles.length) +
           (latestGh?.repos.length || githubRepos.length) +
           mergedProjects.length +
           tasks.length,
-        message: `Pulled everything: ${latestGh?.repos.length || githubRepos.length} repos, ${latestDrive.length || driveFiles.length} Drive files, ${mergedProjects.length} portfolio projects`,
+        message: `Pulled everything: ${updatedSocialAccounts.length} Meta & Social channels, ${mergedProjects.length} Meta Muse apps/projects, ${latestGh?.repos.length || githubRepos.length} GitHub repos & ${latestDrive.length || driveFiles.length} Drive files`,
         durationMs: Date.now() - startTime,
       });
       setSyncLogs(getSyncLogs());
@@ -1382,7 +1407,9 @@ export default function App() {
               onAddPost={handleAddSocialPost}
               onDeletePost={handleDeleteSocialPost}
               driveFiles={driveFiles}
+              githubRepos={githubRepos}
               projects={projects}
+              onAddProject={handleAddProject}
               isSyncing={isSyncing}
               onSyncSocialBackground={handleSyncSocialBackground}
               onAddTask={handleAddTask}

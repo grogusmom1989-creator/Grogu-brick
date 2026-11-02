@@ -73,10 +73,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'social' as AppTab,
-      label: 'Meta & Social Media',
+      label: 'Meta Muse & App Store',
       icon: Globe,
-      badge: `${socialCount}`,
-      badgeColor: 'bg-pink-500/15 text-pink-300 border border-pink-500/30',
+      badge: 'Muse',
+      badgeColor: 'bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40',
     },
     {
       id: 'bridges' as AppTab,
