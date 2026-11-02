@@ -1,6 +1,7 @@
 export type AppTab = 
   | 'overview' 
   | 'projects'
+  | 'bridges'
   | 'drive' 
   | 'github' 
   | 'tasks' 
@@ -12,6 +13,48 @@ export type AppTab =
   | 'kikis_world'
   | 'remix'
   | 'earnings';
+
+export type BridgeModule = 
+  | 'drive' 
+  | 'github' 
+  | 'one_d_world' 
+  | 'kikis_world' 
+  | 'remix' 
+  | 'earnings' 
+  | 'projects' 
+  | 'tasks' 
+  | 'notes' 
+  | 'webhook';
+
+export interface ProjectBridge {
+  id: string;
+  name: string;
+  sourceModule: BridgeModule;
+  targetModule: BridgeModule;
+  title: string;
+  description: string;
+  status: 'active' | 'syncing' | 'idle' | 'paused';
+  syncMode: 'realtime' | 'event_driven' | 'poll' | 'manual';
+  latencyMs: number;
+  packetsCount: number;
+  lastEventAt?: string;
+  config: Record<string, any>;
+  enabled: boolean;
+  category: 'media' | 'code' | 'audio' | 'payment' | 'data' | 'webhook';
+}
+
+export interface BridgeEvent {
+  id: string;
+  bridgeId: string;
+  bridgeName: string;
+  source: string;
+  target: string;
+  timestamp: string;
+  type: string;
+  summary: string;
+  payload?: any;
+  status: 'delivered' | 'processing' | 'failed';
+}
 
 export type ProjectSource = 'github' | 'drive' | 'custom' | 'internal' | 'upload';
 export type ProjectStatus = 'active' | 'in_progress' | 'deployed' | 'archived' | 'concept';

@@ -16,6 +16,7 @@ import {
   File,
   ArrowRight,
   FolderGit2,
+  Share2,
 } from 'lucide-react';
 import { GoogleDriveFile, GitHubRepo, GitHubIssue, WorkspaceTask, WorkspaceNote, WorkspaceProject, AppTab } from '../types';
 
@@ -155,6 +156,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       icon: FolderGit2,
       action: () => {
         onSelectTab('projects');
+        onClose();
+      },
+    },
+    {
+      id: 'action-bridges',
+      title: 'Open Connectors & Bridges Hub',
+      subtitle: 'Inspect live data pipes connecting Drive, GitHub, 1D Sound, Kiki 2.0, and PayPal',
+      category: 'Actions',
+      icon: Share2,
+      action: () => {
+        onSelectTab('bridges');
         onClose();
       },
     },

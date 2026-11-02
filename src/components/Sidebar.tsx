@@ -2,6 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard,
   FolderGit2,
+  Share2,
   Cloud,
   Github,
   CheckSquare,
@@ -31,6 +32,7 @@ interface SidebarProps {
   taskCount: number;
   noteCount: number;
   projectCount?: number;
+  bridgesCount?: number;
   googleUser: User | null;
   githubUser: GitHubUser | null;
   onLogoutGoogle: () => void;
@@ -47,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   taskCount,
   noteCount,
   projectCount,
+  bridgesCount,
   googleUser,
   githubUser,
   onLogoutGoogle,
@@ -65,6 +68,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: FolderGit2,
       badge: projectCount && projectCount > 0 ? projectCount : null,
       badgeColor: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30',
+    },
+    {
+      id: 'bridges' as AppTab,
+      label: 'Connectors & Bridges',
+      icon: Share2,
+      badge: bridgesCount && bridgesCount > 0 ? `${bridgesCount}` : 'Live',
+      badgeColor: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30',
     },
     {
       id: 'drive' as AppTab,

@@ -21,6 +21,8 @@ import {
   Code2,
   DollarSign,
   FolderGit2,
+  Share2,
+  Zap,
 } from 'lucide-react';
 import { GoogleDriveFile, GitHubRepo, GitHubIssue, WorkspaceTask, WorkspaceNote, AppTab } from '../types';
 import { GoogleSignInButton } from './GoogleSignInButton';
@@ -43,6 +45,7 @@ interface OverviewDashboardProps {
   notes: WorkspaceNote[];
   pinnedIds: string[];
   projectsCount?: number;
+  bridgesCount?: number;
   onOpenNewTaskModal: () => void;
   onUpdateTaskStatus: (id: string, status: any) => void;
 }
@@ -63,6 +66,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   notes,
   pinnedIds,
   projectsCount = 0,
+  bridgesCount = 10,
   onOpenNewTaskModal,
   onUpdateTaskStatus,
 }) => {
@@ -360,8 +364,33 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             </button>
           </div>
 
-          {/* 2-Column Subgrid: Remixed App Studio & PayPal Earnings */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* 3-Column Subgrid: Connectors & Bridges, Remixed App Studio & PayPal Earnings */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Connectors & Bridges Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3">
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
+                  <Share2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Connectors & Bridges</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-1">
+                  Active data pipes and event buses bridging Drive, GitHub, 1D Sound, Kiki 2.0, and PayPal.
+                </p>
+                <div className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-mono text-cyan-400 bg-cyan-950/40 border border-cyan-800/40 px-2 py-0.5 rounded">
+                  <Zap className="w-3 h-3 text-cyan-300" />
+                  <span>{bridgesCount} Active Bridges</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => onSelectTab('bridges')}
+                className="w-full py-2 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-xs font-medium rounded-lg flex items-center justify-center gap-1 transition-colors"
+              >
+                <span>Open Bridges Hub</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             {/* Remixed App Studio Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3">
               <div>

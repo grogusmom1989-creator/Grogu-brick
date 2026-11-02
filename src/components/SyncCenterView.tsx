@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   RefreshCw,
   Cloud,
@@ -13,8 +12,10 @@ import {
   Layers,
   ArrowUpDown,
   Zap,
+  Share2,
+  ArrowRight,
 } from 'lucide-react';
-import { SyncConfig, SyncLogEntry, GoogleDriveFile } from '../types';
+import { SyncConfig, SyncLogEntry, GoogleDriveFile, AppTab } from '../types';
 import { GitHubSyncData } from '../services/github';
 import { User } from 'firebase/auth';
 
@@ -33,6 +34,8 @@ interface SyncCenterViewProps {
   githubData: GitHubSyncData | null;
   tasksCount: number;
   notesCount: number;
+  bridgesCount?: number;
+  onSelectTab?: (tab: AppTab) => void;
   onExportWorkspace: () => void;
 }
 
@@ -51,6 +54,8 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
   githubData,
   tasksCount,
   notesCount,
+  bridgesCount = 10,
+  onSelectTab,
   onExportWorkspace,
 }) => {
   const getStatusBadge = (status: SyncLogEntry['status']) => {
@@ -110,7 +115,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
       </div>
 
       {/* Sync Services Connectivity Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Google Drive Card */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
@@ -232,6 +237,41 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
             className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition-colors"
           >
             Backup Cache
+          </button>
+        </div>
+
+        {/* Connectors & Bridges Card */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                <Share2 className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-white">Project Bridges</h4>
+                <p className="text-[11px] text-slate-400">Cross-app pipelines</p>
+              </div>
+            </div>
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50 animate-pulse" />
+          </div>
+
+          <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800/80 space-y-1.5 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Active Bridges:</span>
+              <span className="font-mono text-cyan-400">{bridgesCount} Pipelines</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Latency & Health:</span>
+              <span className="text-emerald-400 font-medium">Optimal (~16ms)</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onSelectTab && onSelectTab('bridges')}
+            className="w-full py-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
+          >
+            <span>Manage Bridges</span>
+            <ArrowRight className="w-3 h-3" />
           </button>
         </div>
       </div>

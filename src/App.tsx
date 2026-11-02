@@ -14,6 +14,8 @@ import {
   WorkspaceTask,
   WorkspaceNote,
   WorkspaceProject,
+  ProjectBridge,
+  BridgeEvent,
   SyncConfig,
   SyncLogEntry,
 } from './types';
@@ -33,6 +35,11 @@ import {
   saveStoredNotes,
   getStoredProjects,
   saveStoredProjects,
+  getStoredBridges,
+  saveStoredBridges,
+  getStoredBridgeEvents,
+  addStoredBridgeEvent,
+  clearStoredBridgeEvents,
   getSyncConfig,
   saveSyncConfig,
   getSyncLogs,
@@ -64,6 +71,7 @@ import { KikisWorldView } from './components/KikisWorldView';
 import { RemixedAppView } from './components/RemixedAppView';
 import { PayPalEarningsView } from './components/PayPalEarningsView';
 import { ProjectPortfolioView } from './components/ProjectPortfolioView';
+import { ConnectorsBridgesView } from './components/ConnectorsBridgesView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('overview');
@@ -94,6 +102,10 @@ export default function App() {
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
 
+  // Connectors & Bridges State
+  const [bridges, setBridges] = useState<ProjectBridge[]>([]);
+  const [bridgeEvents, setBridgeEvents] = useState<BridgeEvent[]>([]);
+
   // Sync Engine State
   const [syncConfig, setSyncConfig] = useState<SyncConfig>(getSyncConfig());
   const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
@@ -108,6 +120,8 @@ export default function App() {
     setTasks(getStoredTasks());
     setNotes(getStoredNotes());
     setProjects(getStoredProjects());
+    setBridges(getStoredBridges());
+    setBridgeEvents(getStoredBridgeEvents());
     setSyncLogs(getSyncLogs());
     setPinnedIds(getPinnedIds());
 
@@ -492,6 +506,52 @@ export default function App() {
     setSyncLogs(getSyncLogs());
   };
 
+  // Connectors & Bridges Handlers
+  const handleUpdateBridge = (id: string, updates: Partial<ProjectBridge>) => {
+    setBridges((prev) => {
+      const updated = prev.map((b) => (b.id === id ? { ...b, ...updates } : b));
+      saveStoredBridges(updated);
+      return updated;
+    });
+  };
+
+  const handleAddBridge = (newBridge: Omit<ProjectBridge, 'id' | 'packetsCount' | 'lastEventAt'>) => {
+    setBridges((prev) => {
+      const bridge: ProjectBridge = {
+        ...newBridge,
+        id: `bridge-${Date.now()}`,
+        packetsCount: 0,
+        lastEventAt: new Date().toISOString(),
+      };
+      const updated = [bridge, ...prev];
+      saveStoredBridges(updated);
+      return updated;
+    });
+  };
+
+  const handleDeleteBridge = (id: string) => {
+    setBridges((prev) => {
+      const updated = prev.filter((b) => b.id !== id);
+      saveStoredBridges(updated);
+      return updated;
+    });
+  };
+
+  const handleAddBridgeEvent = (eventData: Omit<BridgeEvent, 'id' | 'timestamp'>) => {
+    const newEvt: BridgeEvent = {
+      ...eventData,
+      id: `evt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString(),
+    };
+    const updated = addStoredBridgeEvent(newEvt);
+    setBridgeEvents(updated);
+  };
+
+  const handleClearBridgeEvents = () => {
+    clearStoredBridgeEvents();
+    setBridgeEvents([]);
+  };
+
   const handlePin = (id: string) => {
     const nextPins = togglePinnedId(id);
     setPinnedIds(nextPins);
@@ -544,6 +604,7 @@ export default function App() {
           taskCount={tasks.filter((t) => t.status !== 'done').length}
           noteCount={notes.length}
           projectCount={projects.length}
+          bridgesCount={bridges.length}
           googleUser={googleUser}
           githubUser={githubUser}
           onLogoutGoogle={handleGoogleLogout}
@@ -569,6 +630,7 @@ export default function App() {
               notes={notes}
               pinnedIds={pinnedIds}
               projectsCount={projects.length}
+              bridgesCount={bridges.length}
               onOpenNewTaskModal={() => setIsNewTaskModalOpen(true)}
               onUpdateTaskStatus={handleUpdateTaskStatus}
             />
@@ -600,6 +662,28 @@ export default function App() {
                 });
                 setSyncLogs(getSyncLogs());
               }}
+            />
+          )}
+
+          {activeTab === 'bridges' && (
+            <ConnectorsBridgesView
+              bridges={bridges}
+              onUpdateBridge={handleUpdateBridge}
+              onAddBridge={handleAddBridge}
+              onDeleteBridge={handleDeleteBridge}
+              bridgeEvents={bridgeEvents}
+              onAddBridgeEvent={handleAddBridgeEvent}
+              onClearBridgeEvents={handleClearBridgeEvents}
+              googleUser={googleUser}
+              githubUser={githubUser}
+              driveFiles={driveFiles}
+              githubRepos={githubRepos}
+              tasks={tasks}
+              notes={notes}
+              projects={projects}
+              onSelectTab={setActiveTab}
+              onAddTask={handleAddTask}
+              onAddNote={handleAddNote}
             />
           )}
 
@@ -694,6 +778,8 @@ export default function App() {
               }}
               tasksCount={tasks.length}
               notesCount={notes.length}
+              bridgesCount={bridges.length}
+              onSelectTab={setActiveTab}
               onExportWorkspace={handleExportWorkspace}
             />
           )}
