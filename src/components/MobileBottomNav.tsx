@@ -6,6 +6,7 @@ import {
   Tv,
   DollarSign,
   FolderGit2,
+  Share2,
   Menu,
 } from 'lucide-react';
 import { AppTab } from '../types';
@@ -25,10 +26,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 }) => {
   const navItems: { tab: AppTab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
     { tab: 'overview', label: 'Home', icon: LayoutDashboard },
+    { tab: 'social', label: 'Social/Apps', icon: Share2 },
     { tab: 'bridges', label: 'Bridges', icon: Network, badge: bridgesCount },
     { tab: 'one_d_world', label: '1D World', icon: Radio },
     { tab: 'kikis_world', label: 'Kiki 2.0', icon: Tv },
-    { tab: 'earnings', label: 'Earnings', icon: DollarSign },
     { tab: 'projects', label: 'Projects', icon: FolderGit2 },
   ];
 

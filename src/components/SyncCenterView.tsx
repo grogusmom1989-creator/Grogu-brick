@@ -16,8 +16,21 @@ import {
   ArrowRight,
   Inbox,
   Send,
+  GitCompare,
+  Check,
+  CopyPlus,
+  Radio,
 } from 'lucide-react';
-import { SyncConfig, SyncLogEntry, GoogleDriveFile, AppTab, OutboxItem } from '../types';
+import {
+  SyncConfig,
+  SyncLogEntry,
+  GoogleDriveFile,
+  AppTab,
+  OutboxItem,
+  SyncConflict,
+  WorkspaceTask,
+  WorkspaceNote,
+} from '../types';
 import { GitHubSyncData } from '../services/github';
 import { User } from 'firebase/auth';
 
@@ -41,6 +54,9 @@ interface SyncCenterViewProps {
   isFlushingOutbox?: boolean;
   onFlushOutbox?: () => void;
   onClearOutbox?: () => void;
+  conflicts?: SyncConflict[];
+  onResolveConflict?: (conflictId: string, resolution: 'local' | 'cloud' | 'both') => void;
+  onSimulateConflict?: () => void;
   onSelectTab?: (tab: AppTab) => void;
   onExportWorkspace: () => void;
 }
@@ -65,6 +81,9 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
   isFlushingOutbox = false,
   onFlushOutbox,
   onClearOutbox,
+  conflicts = [],
+  onResolveConflict,
+  onSimulateConflict,
   onSelectTab,
   onExportWorkspace,
 }) => {
@@ -288,16 +307,21 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
 
       {/* Sync Engine Settings */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-400" />
-          <span>Automation & Background Cadence</span>
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span>Autonomous Background Daemon & Cadence</span>
+          </h3>
+          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            Non-Blocking Background Worker Active
+          </span>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
             <div>
-              <div className="text-xs font-medium text-slate-200">Automatic Sync</div>
-              <div className="text-[11px] text-slate-500">Run sync quietly in the background</div>
+              <div className="text-xs font-medium text-slate-200">Background Auto-Sync</div>
+              <div className="text-[11px] text-slate-500">Runs Drive, GitHub, Outbox & Socials silently</div>
             </div>
             <input
               type="checkbox"
@@ -309,8 +333,21 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
 
           <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
             <div>
+              <div className="text-xs font-medium text-slate-200">Background Auto-Resolve</div>
+              <div className="text-[11px] text-slate-500">Auto-merge conflicts by latest timestamp</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={Boolean(config.autoResolveConflicts)}
+              onChange={(e) => onUpdateConfig({ autoResolveConflicts: e.target.checked })}
+              className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+            <div>
               <div className="text-xs font-medium text-slate-200">Sync Cadence</div>
-              <div className="text-[11px] text-slate-500">Frequency between automatic updates</div>
+              <div className="text-[11px] text-slate-500">Frequency between background ticks</div>
             </div>
             <select
               value={config.intervalMinutes}
@@ -325,6 +362,183 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
             </select>
           </div>
         </div>
+      </div>
+
+      {/* Conflict Resolution Center UI (Local Offline vs. Firestore Cloud) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <GitCompare className="w-4 h-4 text-amber-400" />
+              <span>Conflict Resolution Center (Local Offline vs. Firestore Cloud)</span>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                  conflicts.length > 0
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse'
+                    : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                }`}
+              >
+                {conflicts.length} {conflicts.length === 1 ? 'Conflict' : 'Conflicts'}
+              </span>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Detects when a task or note has been modified both locally while offline and in Firestore Cloud, allowing you to inspect both versions side-by-side and choose which version to keep.
+            </p>
+          </div>
+
+          {onSimulateConflict && (
+            <button
+              onClick={onSimulateConflict}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-medium transition-colors shrink-0 flex items-center gap-1.5"
+            >
+              <GitCompare className="w-3.5 h-3.5" />
+              <span>Test / Simulate Conflict</span>
+            </button>
+          )}
+        </div>
+
+        {conflicts.length === 0 ? (
+          <div className="p-4 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Zero sync conflicts detected — Local Workspace and Firestore Cloud are in harmony.</span>
+            </div>
+            <span className="font-mono text-[11px] text-emerald-400">In Sync</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {conflicts.map((conflict) => {
+              const isTask = conflict.entityType === 'task';
+              const localTask = conflict.localVersion as WorkspaceTask;
+              const cloudTask = conflict.cloudVersion as WorkspaceTask;
+              const localNote = conflict.localVersion as WorkspaceNote;
+              const cloudNote = conflict.cloudVersion as WorkspaceNote;
+
+              return (
+                <div
+                  key={conflict.id}
+                  className="p-4 rounded-xl bg-slate-950/90 border border-amber-500/40 space-y-4 shadow-lg"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {conflict.entityType} conflict
+                      </span>
+                      <h4 className="text-sm font-bold text-white">{conflict.entityTitle}</h4>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {conflict.summary}
+                    </span>
+                  </div>
+
+                  {/* Side-by-Side Comparison */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Local Offline Version */}
+                    <div className="p-3.5 rounded-xl bg-indigo-950/25 border border-indigo-500/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-indigo-300">
+                          Local Version (Modified Offline)
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {new Date(conflict.localUpdatedAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <div className="text-xs font-semibold text-white">
+                        {conflict.localVersion.title}
+                      </div>
+                      {isTask ? (
+                        <div className="space-y-1 text-xs text-slate-300">
+                          <div className="flex items-center gap-2 font-mono text-[11px]">
+                            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-indigo-300">
+                              Status: {localTask.status}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300">
+                              Priority: {localTask.priority}
+                            </span>
+                          </div>
+                          {localTask.description && (
+                            <p className="text-slate-400 text-[11px] pt-1 line-clamp-3">
+                              {localTask.description}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <pre className="p-2.5 rounded bg-slate-900/90 text-[11px] text-slate-300 font-sans whitespace-pre-wrap max-h-28 overflow-y-auto">
+                          {localNote.content}
+                        </pre>
+                      )}
+                    </div>
+
+                    {/* Firestore Cloud Version */}
+                    <div className="p-3.5 rounded-xl bg-cyan-950/25 border border-cyan-500/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-cyan-300">
+                          Firestore Cloud Version
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {new Date(conflict.cloudUpdatedAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <div className="text-xs font-semibold text-white">
+                        {conflict.cloudVersion.title}
+                      </div>
+                      {isTask ? (
+                        <div className="space-y-1 text-xs text-slate-300">
+                          <div className="flex items-center gap-2 font-mono text-[11px]">
+                            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-cyan-300">
+                              Status: {cloudTask.status}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300">
+                              Priority: {cloudTask.priority}
+                            </span>
+                          </div>
+                          {cloudTask.description && (
+                            <p className="text-slate-400 text-[11px] pt-1 line-clamp-3">
+                              {cloudTask.description}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <pre className="p-2.5 rounded bg-slate-900/90 text-[11px] text-slate-300 font-sans whitespace-pre-wrap max-h-28 overflow-y-auto">
+                          {cloudNote.content}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Resolution Actions */}
+                  {onResolveConflict && (
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                      <button
+                        onClick={() => onResolveConflict(conflict.id, 'local')}
+                        className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Keep Local Version</span>
+                      </button>
+
+                      <button
+                        onClick={() => onResolveConflict(conflict.id, 'cloud')}
+                        className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Cloud className="w-3.5 h-3.5" />
+                        <span>Keep Firestore Cloud Version</span>
+                      </button>
+
+                      <button
+                        onClick={() => onResolveConflict(conflict.id, 'both')}
+                        className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        <CopyPlus className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Keep Both (Save Forked Copy)</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Persistent Offline Outbox Queue */}

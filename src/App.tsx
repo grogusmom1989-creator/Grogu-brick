@@ -19,6 +19,9 @@ import {
   SyncConfig,
   SyncLogEntry,
   OutboxItem,
+  SyncConflict,
+  SocialAccount,
+  SocialPost,
 } from './types';
 import {
   initAuth,
@@ -66,6 +69,13 @@ import {
   getOutboxItems,
   enqueueOutboxAction,
   clearOutbox,
+  getSyncConflicts,
+  upsertSyncConflict,
+  removeSyncConflict,
+  getSocialAccounts,
+  saveSocialAccounts,
+  getSocialPosts,
+  saveSocialPosts,
 } from './services/storage';
 
 // Components
@@ -87,6 +97,7 @@ import { RemixedAppView } from './components/RemixedAppView';
 import { PayPalEarningsView } from './components/PayPalEarningsView';
 import { ProjectPortfolioView } from './components/ProjectPortfolioView';
 import { ConnectorsBridgesView } from './components/ConnectorsBridgesView';
+import { SocialMediaView } from './components/SocialMediaView';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -122,17 +133,20 @@ export default function App() {
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
 
-  // Connectors & Bridges State
+  // Connectors, Bridges & Meta/Social Media State
   const [bridges, setBridges] = useState<ProjectBridge[]>([]);
   const [bridgeEvents, setBridgeEvents] = useState<BridgeEvent[]>([]);
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>(getSocialAccounts());
+  const [socialPosts, setSocialPosts] = useState<SocialPost[]>(getSocialPosts());
 
-  // Sync Engine & Persistent Offline Outbox State
+  // Sync Engine, Persistent Outbox & Conflict Resolution State
   const [syncConfig, setSyncConfig] = useState<SyncConfig>(getSyncConfig());
   const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncCountdown, setSyncCountdown] = useState<number>(300); // 5 min default
+  const [syncCountdown, setSyncCountdown] = useState<number>(60);
   const [outboxItems, setOutboxItems] = useState<OutboxItem[]>(getOutboxItems());
   const [isFlushingOutbox, setIsFlushingOutbox] = useState(false);
+  const [conflicts, setConflicts] = useState<SyncConflict[]>(getSyncConflicts());
 
   // Global Command Palette (Cmd + K)
   const [isCommandOpen, setIsCommandOpen] = useState(false);
@@ -286,19 +300,82 @@ export default function App() {
     []
   );
 
-  // Pull & Merge from Firestore Cloud Vault when user is authenticated
+  // Pull & Merge from Firestore Cloud Vault + Detect Offline vs. Cloud Conflicts
   const syncFirestoreCloud = useCallback(
     async (user: User) => {
       try {
-        // First flush any pending offline mutations from the persistent localStorage Outbox
-        await handleFlushOutbox(user);
-
         const cfg = getSyncConfig();
+        const queuedOutbox = getOutboxItems();
         await syncUserProfileToFirestore(user, cfg.githubUsername || 'grogusmom1989');
         const cloudData = await pullAllFromFirestore(user.uid);
 
-        // Merge Tasks
+        // Detect Task & Note conflicts before flushing outbox
         const localTasks = getStoredTasks();
+        const localNotes = getStoredNotes();
+
+        for (const cloudTask of cloudData.tasks) {
+          const localMatch = localTasks.find((t) => t.id === cloudTask.id);
+          const wasModifiedOffline = queuedOutbox.some(
+            (q) => q.entityType === 'task' && q.entityId === cloudTask.id && q.action === 'upsert'
+          );
+          if (
+            localMatch &&
+            wasModifiedOffline &&
+            (localMatch.title !== cloudTask.title ||
+              localMatch.status !== cloudTask.status ||
+              localMatch.priority !== cloudTask.priority ||
+              (localMatch.description || '') !== (cloudTask.description || ''))
+          ) {
+            if (!cfg.autoResolveConflicts) {
+              const updatedConflicts = upsertSyncConflict({
+                id: `conflict-task-${cloudTask.id}`,
+                entityType: 'task',
+                entityId: cloudTask.id,
+                entityTitle: localMatch.title,
+                localVersion: localMatch,
+                cloudVersion: cloudTask,
+                detectedAt: new Date().toISOString(),
+                localUpdatedAt: new Date().toISOString(),
+                cloudUpdatedAt: cloudTask.createdAt || new Date().toISOString(),
+                summary: `Status "${localMatch.status}" (Local) vs "${cloudTask.status}" (Cloud)`,
+              });
+              setConflicts(updatedConflicts);
+            }
+          }
+        }
+
+        for (const cloudNote of cloudData.notes) {
+          const localMatch = localNotes.find((n) => n.id === cloudNote.id);
+          const wasModifiedOffline = queuedOutbox.some(
+            (q) => q.entityType === 'note' && q.entityId === cloudNote.id && q.action === 'upsert'
+          );
+          if (
+            localMatch &&
+            wasModifiedOffline &&
+            (localMatch.title !== cloudNote.title || localMatch.content !== cloudNote.content)
+          ) {
+            if (!cfg.autoResolveConflicts) {
+              const updatedConflicts = upsertSyncConflict({
+                id: `conflict-note-${cloudNote.id}`,
+                entityType: 'note',
+                entityId: cloudNote.id,
+                entityTitle: localMatch.title,
+                localVersion: localMatch,
+                cloudVersion: cloudNote,
+                detectedAt: new Date().toISOString(),
+                localUpdatedAt: localMatch.updatedAt || new Date().toISOString(),
+                cloudUpdatedAt: cloudNote.updatedAt || new Date().toISOString(),
+                summary: `Modified both offline (${localMatch.content.length} chars) & in Firestore (${cloudNote.content.length} chars)`,
+              });
+              setConflicts(updatedConflicts);
+            }
+          }
+        }
+
+        // Flush pending offline mutations from the persistent localStorage Outbox
+        await handleFlushOutbox(user);
+
+        // Merge Tasks
         const cloudTaskIds = new Set(cloudData.tasks.map((t) => t.id));
         const mergedTasks = [
           ...cloudData.tasks,
@@ -311,7 +388,6 @@ export default function App() {
         }
 
         // Merge Notes
-        const localNotes = getStoredNotes();
         const cloudNoteIds = new Set(cloudData.notes.map((n) => n.id));
         const mergedNotes = [
           ...cloudData.notes,
@@ -362,6 +438,9 @@ export default function App() {
     setSyncLogs(getSyncLogs());
     setPinnedIds(getPinnedIds());
     setOutboxItems(getOutboxItems());
+    setConflicts(getSyncConflicts());
+    setSocialAccounts(getSocialAccounts());
+    setSocialPosts(getSocialPosts());
 
     const cachedDrive = getCachedDriveFiles();
     if (cachedDrive.length > 0) {
@@ -568,7 +647,7 @@ export default function App() {
     tasks.length,
   ]);
 
-  // 5. Auto-Sync Countdown Daemon
+  // 5. Auto-Sync Countdown Daemon & Background Wake-on-Focus Engine
   useEffect(() => {
     if (!syncConfig.autoSync) return;
 
@@ -576,7 +655,7 @@ export default function App() {
       setSyncCountdown((prev) => {
         if (prev <= 1) {
           syncAll();
-          return (syncConfig.intervalMinutes || 5) * 60;
+          return (syncConfig.intervalMinutes || 1) * 60;
         }
         return prev - 1;
       });
@@ -584,6 +663,23 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [syncConfig.autoSync, syncConfig.intervalMinutes, syncAll]);
+
+  // Autonomous Background Re-Sync on Tab Focus / Visibility Wake
+  useEffect(() => {
+    const onWake = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        if (googleUser) {
+          handleFlushOutbox(googleUser);
+        }
+      }
+    };
+    window.addEventListener('focus', onWake);
+    document.addEventListener('visibilitychange', onWake);
+    return () => {
+      window.removeEventListener('focus', onWake);
+      document.removeEventListener('visibilitychange', onWake);
+    };
+  }, [googleUser, handleFlushOutbox]);
 
   // 6. Global Keyboard Shortcuts (Cmd + K, /)
   useEffect(() => {
@@ -644,12 +740,261 @@ export default function App() {
     syncGitHub(username, token);
   };
 
-  // 9. Tasks and Notes Handlers (Persisted Locally + Queued in Outbox → Auto-Flushed to Firestore)
-  const handleAddTask = (newTask: Omit<WorkspaceTask, 'id' | 'createdAt'>) => {
+  // 9. Conflict Resolution Handlers (Keep Local, Keep Cloud, or Keep Both)
+  const handleResolveConflict = (
+    conflictId: string,
+    resolution: 'local' | 'cloud' | 'both'
+  ) => {
+    const conflict = conflicts.find((c) => c.id === conflictId);
+    if (!conflict) return;
+
+    if (conflict.entityType === 'task') {
+      const localTask = conflict.localVersion as WorkspaceTask;
+      const cloudTask = conflict.cloudVersion as WorkspaceTask;
+
+      if (resolution === 'local') {
+        const mergedTask: WorkspaceTask = {
+          ...localTask,
+          updatedAt: new Date().toISOString(),
+        };
+        const nextTasks = tasks.map((t) => (t.id === mergedTask.id ? mergedTask : t));
+        setTasks(nextTasks);
+        saveStoredTasks(nextTasks);
+        queueAndFlushMutation({
+          entityType: 'task',
+          action: 'upsert',
+          entityId: mergedTask.id,
+          entityTitle: mergedTask.title,
+          payload: mergedTask,
+        });
+      } else if (resolution === 'cloud') {
+        const nextTasks = tasks.some((t) => t.id === cloudTask.id)
+          ? tasks.map((t) => (t.id === cloudTask.id ? cloudTask : t))
+          : [cloudTask, ...tasks];
+        setTasks(nextTasks);
+        saveStoredTasks(nextTasks);
+      } else if (resolution === 'both') {
+        const forkedTask: WorkspaceTask = {
+          ...cloudTask,
+          id: `task-fork-${Date.now()}`,
+          title: `${cloudTask.title} (Firestore Cloud Copy)`,
+          updatedAt: new Date().toISOString(),
+        };
+        const nextTasks = [
+          forkedTask,
+          ...tasks.map((t) => (t.id === localTask.id ? localTask : t)),
+        ];
+        setTasks(nextTasks);
+        saveStoredTasks(nextTasks);
+        queueAndFlushMutation({
+          entityType: 'task',
+          action: 'upsert',
+          entityId: localTask.id,
+          entityTitle: localTask.title,
+          payload: localTask,
+        });
+        queueAndFlushMutation({
+          entityType: 'task',
+          action: 'upsert',
+          entityId: forkedTask.id,
+          entityTitle: forkedTask.title,
+          payload: forkedTask,
+        });
+      }
+    } else if (conflict.entityType === 'note') {
+      const localNote = conflict.localVersion as WorkspaceNote;
+      const cloudNote = conflict.cloudVersion as WorkspaceNote;
+
+      if (resolution === 'local') {
+        const mergedNote: WorkspaceNote = {
+          ...localNote,
+          updatedAt: new Date().toISOString(),
+        };
+        const nextNotes = notes.map((n) => (n.id === mergedNote.id ? mergedNote : n));
+        setNotes(nextNotes);
+        saveStoredNotes(nextNotes);
+        queueAndFlushMutation({
+          entityType: 'note',
+          action: 'upsert',
+          entityId: mergedNote.id,
+          entityTitle: mergedNote.title,
+          payload: mergedNote,
+        });
+      } else if (resolution === 'cloud') {
+        const nextNotes = notes.some((n) => n.id === cloudNote.id)
+          ? notes.map((n) => (n.id === cloudNote.id ? cloudNote : n))
+          : [cloudNote, ...notes];
+        setNotes(nextNotes);
+        saveStoredNotes(nextNotes);
+      } else if (resolution === 'both') {
+        const forkedNote: WorkspaceNote = {
+          ...cloudNote,
+          id: `note-fork-${Date.now()}`,
+          title: `${cloudNote.title} (Firestore Cloud Copy)`,
+          updatedAt: new Date().toISOString(),
+        };
+        const nextNotes = [
+          forkedNote,
+          ...notes.map((n) => (n.id === localNote.id ? localNote : n)),
+        ];
+        setNotes(nextNotes);
+        saveStoredNotes(nextNotes);
+        queueAndFlushMutation({
+          entityType: 'note',
+          action: 'upsert',
+          entityId: localNote.id,
+          entityTitle: localNote.title,
+          payload: localNote,
+        });
+        queueAndFlushMutation({
+          entityType: 'note',
+          action: 'upsert',
+          entityId: forkedNote.id,
+          entityTitle: forkedNote.title,
+          payload: forkedNote,
+        });
+      }
+    }
+
+    const remainingConflicts = removeSyncConflict(conflictId);
+    setConflicts(remainingConflicts);
+    addSyncLog({
+      source: 'all',
+      status: 'success',
+      itemCount: 1,
+      message: `Resolved ${conflict.entityType} conflict for "${conflict.entityTitle}" using [${resolution.toUpperCase()}] strategy`,
+      durationMs: 15,
+    });
+    setSyncLogs(getSyncLogs());
+  };
+
+  const handleSimulateConflict = () => {
+    const sampleNote: WorkspaceNote = notes[0] || {
+      id: 'note-conflict-demo',
+      title: 'OmniSync & Meta Social Architecture Spec',
+      content: 'Local Offline Draft: Added Meta Business Suite, Instagram, Threads, and TikTok background syndication.',
+      tags: ['Architecture', 'Meta', 'Social'],
+      updatedAt: new Date().toISOString(),
+      linkedRepoName: 'grogusmom1989/omnisync-workspace-hub',
+      pinned: true,
+    };
+
+    const localTs = new Date().toISOString();
+    const cloudTs = new Date(Date.now() - 45000).toISOString();
+
+    const simulatedConflict: SyncConflict = {
+      id: `conflict-note-${sampleNote.id}`,
+      entityType: 'note',
+      entityId: sampleNote.id,
+      entityTitle: sampleNote.title,
+      localVersion: {
+        ...sampleNote,
+        content: `${sampleNote.content}\n\n[LOCAL OFFLINE EDIT]: Queued while offline — includes Meta & Social Media background daemon settings.`,
+        updatedAt: localTs,
+      },
+      cloudVersion: {
+        ...sampleNote,
+        content: `${sampleNote.content}\n\n[FIRESTORE CLOUD EDIT]: Updated from mobile device — synced Play Store TWA manifest & assetlinks.json.`,
+        updatedAt: cloudTs,
+      },
+      detectedAt: localTs,
+      localUpdatedAt: localTs,
+      cloudUpdatedAt: cloudTs,
+      summary: 'Note content diverged between offline local storage Outbox and Firestore Cloud.',
+    };
+
+    const nextConflicts = upsertSyncConflict(simulatedConflict);
+    setConflicts(nextConflicts);
+    addSyncLog({
+      source: 'outbox',
+      status: 'warning',
+      itemCount: 1,
+      message: `Conflict detected on "${sampleNote.title}" (Modified both locally offline and in Firestore Cloud)`,
+      durationMs: 12,
+    });
+    setSyncLogs(getSyncLogs());
+  };
+
+  // 9b. Meta & Universal Social Media Command App Handlers
+  const handleUpdateSocialAccounts = (updatedAccounts: SocialAccount[]) => {
+    setSocialAccounts(updatedAccounts);
+    saveSocialAccounts(updatedAccounts);
+  };
+
+  const handleAddSocialPost = (postData: Omit<SocialPost, 'id' | 'createdAt'>) => {
+    const newPost: SocialPost = {
+      ...postData,
+      id: `social-post-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newPost, ...socialPosts];
+    setSocialPosts(updated);
+    saveSocialPosts(updated);
+
+    const postLabel = newPost.title || newPost.content.slice(0, 40);
+
+    // Queue in persistent Outbox so offline social posts also auto-flush to Firestore
+    queueAndFlushMutation({
+      entityType: 'social_post',
+      action: 'upsert',
+      entityId: newPost.id,
+      entityTitle: postLabel,
+      payload: newPost,
+    });
+
+    // Emit a live packet on the Meta & Social Media Bridge
+    handleAddBridgeEvent({
+      bridgeId: 'bridge-meta-social-omni',
+      bridgeName: 'Meta (FB/IG/Threads) & Universal Social Hub → Portfolio & Tasks',
+      source: 'social',
+      target: 'projects',
+      type: 'social_syndication',
+      summary: `Syndicated "${postLabel}" across ${newPost.platforms.length} social networks (${newPost.platforms.join(', ')})`,
+      status: 'delivered',
+    });
+
+    addSyncLog({
+      source: 'social',
+      status: 'success',
+      itemCount: newPost.platforms.length,
+      message: `Broadcast "${postLabel}" to ${newPost.platforms.length} social channels in background`,
+      durationMs: 28,
+    });
+    setSyncLogs(getSyncLogs());
+  };
+
+  const handleDeleteSocialPost = (id: string) => {
+    const updated = socialPosts.filter((p) => p.id !== id);
+    setSocialPosts(updated);
+    saveSocialPosts(updated);
+  };
+
+  const handleSyncSocialBackground = () => {
+    const now = new Date().toISOString();
+    const updatedAccounts = socialAccounts.map((acc) =>
+      acc.connected ? { ...acc, lastSyncedAt: now } : acc
+    );
+    setSocialAccounts(updatedAccounts);
+    saveSocialAccounts(updatedAccounts);
+
+    addSyncLog({
+      source: 'social',
+      status: 'success',
+      itemCount: updatedAccounts.filter((a) => a.connected).length,
+      message: `Pulled Meta (Facebook, Instagram, Threads, WhatsApp) & Social Media feeds in background`,
+      durationMs: 42,
+    });
+    setSyncLogs(getSyncLogs());
+  };
+
+  // 10. Tasks and Notes Handlers (Persisted Locally + Queued in Outbox → Auto-Flushed to Firestore)
+  const handleAddTask = (newTask: Omit<WorkspaceTask, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const now = new Date().toISOString();
     const task: WorkspaceTask = {
       ...newTask,
       id: 'task-' + Date.now(),
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
     const updated = [task, ...tasks];
     setTasks(updated);
@@ -664,7 +1009,8 @@ export default function App() {
   };
 
   const handleUpdateTaskStatus = (taskId: string, status: 'todo' | 'in_progress' | 'done') => {
-    const updated = tasks.map((t) => (t.id === taskId ? { ...t, status } : t));
+    const now = new Date().toISOString();
+    const updated = tasks.map((t) => (t.id === taskId ? { ...t, status, updatedAt: now } : t));
     setTasks(updated);
     saveStoredTasks(updated);
     const target = updated.find((t) => t.id === taskId);
@@ -945,6 +1291,9 @@ export default function App() {
       githubReposCount: githubRepos.length,
       tasks,
       notes,
+      projects,
+      socialAccounts,
+      socialPosts,
       syncConfig,
       syncLogs,
     };
@@ -989,6 +1338,7 @@ export default function App() {
           noteCount={notes.length}
           projectCount={projects.length}
           bridgesCount={bridges.length}
+          socialCount={socialAccounts.filter((a) => a.connected).length}
           googleUser={googleUser}
           githubUser={githubUser}
           onLogoutGoogle={handleGoogleLogout}
@@ -1017,6 +1367,28 @@ export default function App() {
               bridgesCount={bridges.length}
               onOpenNewTaskModal={() => setIsNewTaskModalOpen(true)}
               onUpdateTaskStatus={handleUpdateTaskStatus}
+            />
+          )}
+
+          {activeTab === 'social' && (
+            <SocialMediaView
+              accounts={socialAccounts}
+              posts={socialPosts}
+              onUpdateAccounts={handleUpdateSocialAccounts}
+              onAddPost={handleAddSocialPost}
+              onDeletePost={handleDeleteSocialPost}
+              driveFiles={driveFiles}
+              projects={projects}
+              isSyncing={isSyncing}
+              onSyncSocialBackground={handleSyncSocialBackground}
+              onAddTask={handleAddTask}
+              onAddNote={handleAddNote}
+              onOpenPlayStore={() => setIsPlayStoreModalOpen(true)}
+              onSelectTab={setActiveTab}
+              githubReposCount={githubRepos.length}
+              driveFilesCount={driveFiles.length}
+              projectsCount={projects.length}
+              outboxCount={outboxItems.length}
             />
           )}
 
@@ -1167,6 +1539,9 @@ export default function App() {
               isFlushingOutbox={isFlushingOutbox}
               onFlushOutbox={() => handleFlushOutbox(googleUser)}
               onClearOutbox={() => setOutboxItems(clearOutbox())}
+              conflicts={conflicts}
+              onResolveConflict={handleResolveConflict}
+              onSimulateConflict={handleSimulateConflict}
               onSelectTab={setActiveTab}
               onExportWorkspace={handleExportWorkspace}
             />

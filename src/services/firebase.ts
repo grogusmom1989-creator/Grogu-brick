@@ -177,6 +177,7 @@ export async function syncUserProfileToFirestore(user: User, githubUsername?: st
     await setDoc(
       doc(db, 'users', user.uid),
       {
+        id: truncate(user.uid, 128),
         uid: truncate(user.uid, 128),
         email: truncate(user.email || 'grogusmom1989@gmail.com', 256),
         displayName: truncate(user.displayName || 'OmniSync Creator', 120),
@@ -198,11 +199,13 @@ export async function saveTaskToFirestore(uid: string, task: WorkspaceTask) {
   try {
     const payload: Record<string, any> = {
       id: truncate(task.id, 120),
+      userId: truncate(uid, 128),
       title: truncate(task.title || 'Untitled Task', 300),
       status: task.status,
       priority: task.priority,
       source: task.source,
       createdAt: truncate(task.createdAt || new Date().toISOString(), 64),
+      updatedAt: new Date().toISOString().slice(0, 64),
     };
     if (task.description) payload.description = truncate(task.description, 5000);
     if (task.dueDate) payload.dueDate = truncate(task.dueDate, 64);
@@ -231,6 +234,7 @@ export async function saveNoteToFirestore(uid: string, note: WorkspaceNote) {
   try {
     const payload: Record<string, any> = {
       id: truncate(note.id, 120),
+      userId: truncate(uid, 128),
       title: truncate(note.title || 'Untitled Note', 300),
       content: truncate(note.content || '', 50000),
       tags: (note.tags || []).slice(0, 20),
@@ -261,6 +265,7 @@ export async function saveProjectToFirestore(uid: string, project: WorkspaceProj
   try {
     const payload: Record<string, any> = {
       id: truncate(project.id, 120),
+      userId: truncate(uid, 128),
       name: truncate(project.name || 'Untitled Project', 200),
       description: truncate(project.description || '', 2000),
       source: project.source,
@@ -299,6 +304,7 @@ export async function saveBridgeToFirestore(uid: string, bridge: ProjectBridge) 
   try {
     const payload: Record<string, any> = {
       id: truncate(bridge.id, 120),
+      userId: truncate(uid, 128),
       name: truncate(bridge.name || 'bridge', 200),
       sourceModule: truncate(bridge.sourceModule, 100),
       targetModule: truncate(bridge.targetModule, 100),

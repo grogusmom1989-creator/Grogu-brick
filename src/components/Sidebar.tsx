@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   FolderGit2,
   Share2,
+  Globe,
   Cloud,
   Github,
   CheckSquare,
@@ -32,6 +33,7 @@ interface SidebarProps {
   noteCount: number;
   projectCount?: number;
   bridgesCount?: number;
+  socialCount?: number;
   googleUser: User | null;
   githubUser: GitHubUser | null;
   onLogoutGoogle: () => void;
@@ -49,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   noteCount,
   projectCount,
   bridgesCount,
+  socialCount = 10,
   googleUser,
   githubUser,
   onLogoutGoogle,
@@ -67,6 +70,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: FolderGit2,
       badge: projectCount && projectCount > 0 ? projectCount : null,
       badgeColor: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30',
+    },
+    {
+      id: 'social' as AppTab,
+      label: 'Meta & Social Media',
+      icon: Globe,
+      badge: `${socialCount}`,
+      badgeColor: 'bg-pink-500/15 text-pink-300 border border-pink-500/30',
     },
     {
       id: 'bridges' as AppTab,

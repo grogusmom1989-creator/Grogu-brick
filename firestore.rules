@@ -29,93 +29,106 @@ service cloud.firestore {
     }
 
     // Entity Validation Helpers
-    function isValidUserProfile(data) {
-      return data.keys().hasAll(['id', 'email', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['id', 'email', 'displayName', 'photoURL', 'paypalHandle', 'createdAt', 'updatedAt'])
-        && data.id is string && data.id == request.auth.uid
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['id', 'uid', 'email', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'uid', 'email', 'displayName', 'photoURL', 'githubUsername', 'paypalHandle', 'createdAt', 'updatedAt'])
+        && data.id is string && data.id == userId
+        && data.uid is string && data.uid == userId
         && data.email is string && data.email.size() <= 256
+        && data.updatedAt is string && data.updatedAt.size() <= 64
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64))
         && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
         && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024))
+        && (!('githubUsername' in data) || (data.githubUsername is string && data.githubUsername.size() <= 100))
         && (!('paypalHandle' in data) || (data.paypalHandle is string && data.paypalHandle.size() <= 64));
     }
 
     function isValidProject(data, userId) {
       return data.keys().hasAll(['id', 'userId', 'name', 'status', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['id', 'userId', 'name', 'description', 'category', 'status', 'tags', 'repoFullName', 'driveFolderId', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'name', 'description', 'source', 'status', 'tags', 'techStack', 'url', 'homepageUrl', 'repoFullName', 'driveFolderId', 'version', 'notes', 'isPinned', 'createdAt', 'updatedAt'])
         && data.id is string && isValidId(data.id)
         && data.userId is string && data.userId == userId
-        && data.name is string && data.name.size() > 0 && data.name.size() <= 128
-        && data.status in ['active', 'archived', 'concept']
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.status in ['active', 'in_progress', 'deployed', 'archived', 'concept']
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64
+        && (!('source' in data) || data.source in ['github', 'drive', 'custom', 'internal', 'upload'])
         && (!('description' in data) || (data.description is string && data.description.size() <= 2048))
-        && (!('category' in data) || (data.category is string && data.category.size() <= 64))
+        && (!('url' in data) || (data.url is string && data.url.size() <= 1024))
+        && (!('homepageUrl' in data) || (data.homepageUrl is string && data.homepageUrl.size() <= 1024))
         && (!('repoFullName' in data) || (data.repoFullName is string && data.repoFullName.size() <= 256))
-        && (!('driveFolderId' in data) || (data.driveFolderId is string && data.driveFolderId.size() <= 128))
-        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 20));
+        && (!('driveFolderId' in data) || (data.driveFolderId is string && data.driveFolderId.size() <= 200))
+        && (!('version' in data) || (data.version is string && data.version.size() <= 64))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000))
+        && (!('isPinned' in data) || data.isPinned is bool)
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 25))
+        && (!('techStack' in data) || (data.techStack is list && data.techStack.size() <= 25));
     }
 
     function isValidTask(data, userId) {
       return data.keys().hasAll(['id', 'userId', 'title', 'status', 'priority', 'createdAt'])
-        && data.keys().hasOnly(['id', 'userId', 'title', 'description', 'status', 'priority', 'source', 'sourceUrl', 'sourceTitle', 'tags', 'dueDate', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'description', 'status', 'priority', 'source', 'sourceUrl', 'sourceTitle', 'tags', 'dueDate', 'createdAt', 'updatedAt'])
         && data.id is string && isValidId(data.id)
         && data.userId is string && data.userId == userId
-        && data.title is string && data.title.size() > 0 && data.title.size() <= 256
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 300
         && data.status in ['todo', 'in_progress', 'done']
         && data.priority in ['low', 'medium', 'high']
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64))
         && (!('source' in data) || data.source in ['manual', 'github', 'drive', 'ai', 'bridge'])
-        && (!('description' in data) || (data.description is string && data.description.size() <= 4096))
+        && (!('description' in data) || (data.description is string && data.description.size() <= 5000))
         && (!('sourceUrl' in data) || (data.sourceUrl is string && data.sourceUrl.size() <= 1024))
-        && (!('sourceTitle' in data) || (data.sourceTitle is string && data.sourceTitle.size() <= 256))
+        && (!('sourceTitle' in data) || (data.sourceTitle is string && data.sourceTitle.size() <= 300))
         && (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 64))
         && (!('tags' in data) || (data.tags is list && data.tags.size() <= 20));
     }
 
     function isValidNote(data, userId) {
       return data.keys().hasAll(['id', 'userId', 'title', 'content', 'updatedAt'])
-        && data.keys().hasOnly(['id', 'userId', 'title', 'content', 'tags', 'linkedFileId', 'linkedRepo', 'color', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'content', 'tags', 'pinned', 'linkedDriveFileId', 'linkedGithubRepo', 'createdAt', 'updatedAt'])
         && data.id is string && isValidId(data.id)
         && data.userId is string && data.userId == userId
-        && data.title is string && data.title.size() > 0 && data.title.size() <= 256
-        && data.content is string && data.content.size() <= 16384
-        && (!('linkedFileId' in data) || (data.linkedFileId is string && data.linkedFileId.size() <= 128))
-        && (!('linkedRepo' in data) || (data.linkedRepo is string && data.linkedRepo.size() <= 256))
-        && (!('color' in data) || (data.color is string && data.color.size() <= 32))
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 300
+        && data.content is string && data.content.size() <= 50000
+        && data.updatedAt is string && data.updatedAt.size() <= 64
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64))
+        && (!('pinned' in data) || data.pinned is bool)
+        && (!('linkedDriveFileId' in data) || (data.linkedDriveFileId is string && data.linkedDriveFileId.size() <= 200))
+        && (!('linkedGithubRepo' in data) || (data.linkedGithubRepo is string && data.linkedGithubRepo.size() <= 256))
         && (!('tags' in data) || (data.tags is list && data.tags.size() <= 20));
     }
 
     function isValidBridge(data, userId) {
       return data.keys().hasAll(['id', 'userId', 'name', 'sourceModule', 'targetModule', 'status'])
-        && data.keys().hasOnly(['id', 'userId', 'name', 'sourceModule', 'targetModule', 'status', 'autoSync', 'syncIntervalMinutes', 'lastSyncAt', 'packetsCount'])
+        && data.keys().hasOnly(['id', 'userId', 'name', 'sourceModule', 'targetModule', 'title', 'description', 'status', 'syncMode', 'latencyMs', 'packetsCount', 'lastEventAt', 'enabled', 'category'])
         && data.id is string && isValidId(data.id)
         && data.userId is string && data.userId == userId
-        && data.name is string && data.name.size() > 0 && data.name.size() <= 128
-        && data.sourceModule is string && data.sourceModule.size() <= 64
-        && data.targetModule is string && data.targetModule.size() <= 64
-        && data.status in ['active', 'paused', 'syncing', 'error']
-        && (!('autoSync' in data) || data.autoSync is bool)
-        && (!('syncIntervalMinutes' in data) || data.syncIntervalMinutes is number)
-        && (!('packetsCount' in data) || data.packetsCount is number);
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.sourceModule is string && data.sourceModule.size() <= 100
+        && data.targetModule is string && data.targetModule.size() <= 100
+        && data.status in ['active', 'paused', 'syncing', 'idle', 'error']
+        && (!('title' in data) || (data.title is string && data.title.size() <= 200))
+        && (!('description' in data) || (data.description is string && data.description.size() <= 1500))
+        && (!('syncMode' in data) || data.syncMode in ['realtime', 'event_driven', 'poll', 'manual'])
+        && (!('latencyMs' in data) || data.latencyMs is number)
+        && (!('packetsCount' in data) || data.packetsCount is number)
+        && (!('lastEventAt' in data) || (data.lastEventAt is string && data.lastEventAt.size() <= 64))
+        && (!('enabled' in data) || data.enabled is bool)
+        && (!('category' in data) || (data.category is string && data.category.size() <= 64));
     }
 
-    function isValidSyncLog(data, userId) {
-      return data.keys().hasAll(['id', 'userId', 'source', 'status', 'message', 'timestamp'])
-        && data.keys().hasOnly(['id', 'userId', 'source', 'status', 'itemCount', 'message', 'durationMs', 'timestamp'])
-        && data.id is string && isValidId(data.id)
-        && data.userId is string && data.userId == userId
-        && data.source in ['github', 'drive', 'all', 'bridge']
-        && data.status in ['success', 'error', 'warning']
-        && data.message is string && data.message.size() <= 1024
-        && (!('itemCount' in data) || data.itemCount is number)
-        && (!('durationMs' in data) || data.durationMs is number);
+    // Connection health check endpoint
+    match /test/{docId} {
+      allow read, write: if false;
     }
 
-    // User Profile Rules
+    // User Profile & Subcollections
     match /users/{userId} {
       allow get: if isOwner(userId) && isValidId(userId);
-      allow list: if false; // Disallow querying across all users
-      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming());
-      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming())
-        && incoming().id == existing().id
-        && incoming().createdAt == existing().createdAt;
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId)
+        && incoming().id == existing().id;
       allow delete: if isOwner(userId) && isValidId(userId);
 
       // Projects Subcollection
@@ -125,8 +138,7 @@ service cloud.firestore {
         allow create: if isOwner(userId) && isValidId(userId) && isValidId(projectId) && isValidProject(incoming(), userId);
         allow update: if isOwner(userId) && isValidId(userId) && isValidId(projectId) && isValidProject(incoming(), userId)
           && incoming().id == existing().id
-          && incoming().userId == existing().userId
-          && incoming().createdAt == existing().createdAt;
+          && incoming().userId == existing().userId;
         allow delete: if isOwner(userId) && isValidId(userId) && isValidId(projectId);
       }
 
@@ -137,8 +149,7 @@ service cloud.firestore {
         allow create: if isOwner(userId) && isValidId(userId) && isValidId(taskId) && isValidTask(incoming(), userId);
         allow update: if isOwner(userId) && isValidId(userId) && isValidId(taskId) && isValidTask(incoming(), userId)
           && incoming().id == existing().id
-          && incoming().userId == existing().userId
-          && incoming().createdAt == existing().createdAt;
+          && incoming().userId == existing().userId;
         allow delete: if isOwner(userId) && isValidId(userId) && isValidId(taskId);
       }
 
@@ -162,15 +173,6 @@ service cloud.firestore {
           && incoming().id == existing().id
           && incoming().userId == existing().userId;
         allow delete: if isOwner(userId) && isValidId(userId) && isValidId(bridgeId);
-      }
-
-      // Sync Logs Subcollection
-      match /syncLogs/{logId} {
-        allow get: if isOwner(userId) && isValidId(userId) && isValidId(logId);
-        allow list: if isOwner(userId) && isValidId(userId);
-        allow create: if isOwner(userId) && isValidId(userId) && isValidId(logId) && isValidSyncLog(incoming(), userId);
-        allow update: if false; // Logs are immutable once written
-        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(logId);
       }
     }
   }

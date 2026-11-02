@@ -2,6 +2,7 @@ export type AppTab =
   | 'overview' 
   | 'projects'
   | 'bridges'
+  | 'social'
   | 'drive' 
   | 'github' 
   | 'tasks' 
@@ -18,6 +19,7 @@ export type AppTab =
 export type BridgeModule = 
   | 'drive' 
   | 'github' 
+  | 'social'
   | 'one_d_world' 
   | 'kikis_world' 
   | 'remix' 
@@ -158,6 +160,7 @@ export interface WorkspaceTask {
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
   createdAt: string;
+  updatedAt?: string;
   source: 'manual' | 'github' | 'drive' | 'ai';
   sourceUrl?: string;
   sourceTitle?: string;
@@ -177,7 +180,7 @@ export interface WorkspaceNote {
 
 export interface OutboxItem {
   id: string;
-  entityType: 'task' | 'note' | 'project' | 'bridge';
+  entityType: 'task' | 'note' | 'project' | 'bridge' | 'social_post';
   action: 'upsert' | 'delete';
   entityId: string;
   entityTitle: string;
@@ -187,10 +190,65 @@ export interface OutboxItem {
   lastError?: string;
 }
 
+export interface SyncConflict {
+  id: string;
+  entityType: 'task' | 'note';
+  entityId: string;
+  entityTitle: string;
+  localVersion: WorkspaceTask | WorkspaceNote;
+  cloudVersion: WorkspaceTask | WorkspaceNote;
+  detectedAt: string;
+  localUpdatedAt: string;
+  cloudUpdatedAt: string;
+  summary: string;
+}
+
+export type SocialPlatformId =
+  | 'meta_facebook'
+  | 'meta_instagram'
+  | 'meta_threads'
+  | 'meta_whatsapp'
+  | 'tiktok'
+  | 'youtube'
+  | 'x_twitter'
+  | 'pinterest'
+  | 'discord'
+  | 'linkedin';
+
+export interface SocialAccount {
+  id: SocialPlatformId;
+  name: string;
+  networkGroup: 'Meta Ecosystem' | 'Video & Reels' | 'Community & Network';
+  handle: string;
+  profileUrl: string;
+  studioUrl: string;
+  connected: boolean;
+  autoSyncBackground: boolean;
+  followersCount: string;
+  lastSyncedAt: string;
+  accentColor: string;
+  badgeText: string;
+}
+
+export interface SocialPost {
+  id: string;
+  title?: string;
+  content: string;
+  platforms: SocialPlatformId[];
+  mediaFileName?: string;
+  linkedProjectName?: string;
+  sourceModule?: string;
+  autoSyncBackground?: boolean;
+  status: 'published' | 'queued_background' | 'scheduled';
+  createdAt: string;
+  scheduledFor?: string;
+  tags: string[];
+}
+
 export interface SyncLogEntry {
   id: string;
   timestamp: string;
-  source: 'drive' | 'github' | 'all' | 'tasks' | 'notes' | 'outbox';
+  source: 'drive' | 'github' | 'all' | 'tasks' | 'notes' | 'outbox' | 'social';
   status: 'success' | 'warning' | 'error';
   itemCount: number;
   message: string;
@@ -200,6 +258,7 @@ export interface SyncLogEntry {
 export interface SyncConfig {
   autoSync: boolean;
   intervalMinutes: number; // 1, 5, 15, 30, 60
+  autoResolveConflicts?: boolean;
   lastSyncDrive?: string;
   lastSyncGitHub?: string;
   lastSyncAll?: string;

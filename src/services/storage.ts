@@ -8,6 +8,9 @@ import {
   ProjectBridge,
   BridgeEvent,
   OutboxItem,
+  SyncConflict,
+  SocialAccount,
+  SocialPost,
 } from '../types';
 import { GitHubSyncData } from './github';
 
@@ -24,6 +27,9 @@ const STORAGE_KEYS = {
   BRIDGES: 'omnisync_bridges_v1',
   BRIDGE_EVENTS: 'omnisync_bridge_events_v1',
   OUTBOX: 'omnisync_outbox_v1',
+  CONFLICTS: 'omnisync_conflicts_v1',
+  SOCIAL_ACCOUNTS: 'omnisync_social_accounts_v1',
+  SOCIAL_POSTS: 'omnisync_social_posts_v1',
 };
 
 export const DEFAULT_PROJECTS: WorkspaceProject[] = [
@@ -102,7 +108,8 @@ export const DEFAULT_PROJECTS: WorkspaceProject[] = [
 
 const DEFAULT_CONFIG: SyncConfig = {
   autoSync: true,
-  intervalMinutes: 5,
+  intervalMinutes: 1,
+  autoResolveConflicts: false,
   githubUsername: 'grogusmom1989',
 };
 
@@ -504,12 +511,32 @@ export const DEFAULT_BRIDGES: ProjectBridge[] = [
     category: 'audio',
   },
   {
+    id: 'bridge-meta-social-omni',
+    name: 'meta_social_media_syndicator',
+    sourceModule: 'social',
+    targetModule: 'projects',
+    title: 'Meta (Facebook, IG, Threads) & Social Media ⇄ OmniSync Hub',
+    description: 'Background daemon syncing Meta Business Suite, Instagram Reels, Threads, TikTok, YouTube Shorts, and X posts with Drive media & Portfolio.',
+    status: 'active',
+    syncMode: 'realtime',
+    latencyMs: 9,
+    packetsCount: 1248,
+    lastEventAt: new Date().toISOString(),
+    config: {
+      autoCrossPostReels: true,
+      metaBusinessSuiteSync: true,
+      backgroundOutboxQueue: true,
+    },
+    enabled: true,
+    category: 'media',
+  },
+  {
     id: 'bridge-omnisync-bus',
     name: 'omnisync_universal_event_bus',
     sourceModule: 'webhook',
     targetModule: 'tasks',
     title: 'OmniSync Universal Event Bus & Webhook Bridge',
-    description: 'Central broker dispatching live events, webhook triggers, and notifications across all 8 project workspaces.',
+    description: 'Central broker dispatching live events, webhook triggers, and notifications across all project workspaces.',
     status: 'active',
     syncMode: 'realtime',
     latencyMs: 2,
@@ -730,6 +757,278 @@ export const clearOutbox = (): OutboxItem[] => {
   }
   return [];
 };
+
+// ============================================================================
+// Persistent Sync Conflicts Queue (localStorage)
+// ============================================================================
+
+export const getSyncConflicts = (): SyncConflict[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CONFLICTS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveSyncConflicts = (conflicts: SyncConflict[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CONFLICTS, JSON.stringify(conflicts));
+  } catch (e) {
+    console.error('Failed to save sync conflicts', e);
+  }
+};
+
+export const upsertSyncConflict = (conflict: SyncConflict): SyncConflict[] => {
+  const current = getSyncConflicts();
+  const existingIdx = current.findIndex(
+    (c) => c.entityType === conflict.entityType && c.entityId === conflict.entityId
+  );
+  let updated: SyncConflict[];
+  if (existingIdx !== -1) {
+    updated = [...current];
+    updated[existingIdx] = conflict;
+  } else {
+    updated = [conflict, ...current];
+  }
+  saveSyncConflicts(updated);
+  return updated;
+};
+
+export const removeSyncConflict = (conflictId: string): SyncConflict[] => {
+  const current = getSyncConflicts();
+  const updated = current.filter((c) => c.id !== conflictId);
+  saveSyncConflicts(updated);
+  return updated;
+};
+
+export const clearSyncConflicts = (): SyncConflict[] => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.CONFLICTS);
+  } catch (e) {
+    console.error('Failed to clear conflicts', e);
+  }
+  return [];
+};
+
+// ============================================================================
+// Meta & Universal Social Media Hub Persistence
+// ============================================================================
+
+export const DEFAULT_SOCIAL_ACCOUNTS: SocialAccount[] = [
+  {
+    id: 'meta_facebook',
+    name: 'Meta Facebook Page & Groups',
+    networkGroup: 'Meta Ecosystem',
+    handle: '@grogusmom1989',
+    profileUrl: 'https://www.facebook.com',
+    studioUrl: 'https://business.facebook.com/latest/home',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Connected',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-blue-400',
+    badgeText: 'Meta Business',
+  },
+  {
+    id: 'meta_instagram',
+    name: 'Meta Instagram & Reels',
+    networkGroup: 'Meta Ecosystem',
+    handle: '@grogusmom1989',
+    profileUrl: 'https://www.instagram.com',
+    studioUrl: 'https://business.facebook.com/latest/composer',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Reels & Grid',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-pink-400',
+    badgeText: 'IG Creator',
+  },
+  {
+    id: 'meta_threads',
+    name: 'Meta Threads',
+    networkGroup: 'Meta Ecosystem',
+    handle: '@grogusmom1989',
+    profileUrl: 'https://www.threads.net',
+    studioUrl: 'https://www.threads.net',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Live Feed',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-slate-200',
+    badgeText: 'Threads API',
+  },
+  {
+    id: 'meta_whatsapp',
+    name: 'Meta WhatsApp & Broadcast',
+    networkGroup: 'Meta Ecosystem',
+    handle: 'grogusmom1989@gmail.com',
+    profileUrl: 'https://web.whatsapp.com',
+    studioUrl: 'https://business.facebook.com',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Direct Hub',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-emerald-400',
+    badgeText: 'Meta Messaging',
+  },
+  {
+    id: 'tiktok',
+    name: 'TikTok Creator Studio',
+    networkGroup: 'Video & Reels',
+    handle: '@grogusmom1989',
+    profileUrl: 'https://www.tiktok.com',
+    studioUrl: 'https://www.tiktok.com/creator-center',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Short Video',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-cyan-400',
+    badgeText: 'TikTok Sync',
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube Channel & Shorts',
+    networkGroup: 'Video & Reels',
+    handle: '@grogusmom1989',
+    profileUrl: 'https://www.youtube.com',
+    studioUrl: 'https://studio.youtube.com',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: '4K & Shorts',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-rose-400',
+    badgeText: 'YT Studio',
+  },
+  {
+    id: 'x_twitter',
+    name: 'X (Twitter) Creator Feed',
+    networkGroup: 'Community & Network',
+    handle: '@grogusmom1989',
+    profileUrl: 'https://x.com',
+    studioUrl: 'https://x.com/compose/post',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Real-time',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-sky-400',
+    badgeText: 'X Stream',
+  },
+  {
+    id: 'pinterest',
+    name: 'Pinterest Visual Boards',
+    networkGroup: 'Community & Network',
+    handle: '@grogusmom1989',
+    profileUrl: 'https://www.pinterest.com',
+    studioUrl: 'https://www.pinterest.com/pin-builder/',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Visual Pins',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-red-400',
+    badgeText: 'Pin Sync',
+  },
+  {
+    id: 'discord',
+    name: 'Discord Community Server',
+    networkGroup: 'Community & Network',
+    handle: 'grogusmom1989',
+    profileUrl: 'https://discord.com/app',
+    studioUrl: 'https://discord.com/developers/applications',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Webhook Bus',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-indigo-400',
+    badgeText: 'Discord Bot',
+  },
+  {
+    id: 'linkedin',
+    name: 'LinkedIn Creator Portfolio',
+    networkGroup: 'Community & Network',
+    handle: 'grogusmom1989',
+    profileUrl: 'https://www.linkedin.com',
+    studioUrl: 'https://www.linkedin.com/feed/',
+    connected: true,
+    autoSyncBackground: true,
+    followersCount: 'Pro Network',
+    lastSyncedAt: new Date().toISOString(),
+    accentColor: 'text-blue-300',
+    badgeText: 'LinkedIn',
+  },
+];
+
+export const DEFAULT_SOCIAL_POSTS: SocialPost[] = [
+  {
+    id: 'social-post-1',
+    content:
+      "✨ Live from OmniSync Hub & Kiki's World 2.0: 528Hz Solfeggio DNA Repair sound bath & Crystal Healing Grid now streaming! Connect via our Play Store & PWA app.",
+    platforms: ['meta_facebook', 'meta_instagram', 'meta_threads', 'tiktok', 'youtube'],
+    mediaFileName: 'Kiki_528Hz_Visualizer_Reel.mp4',
+    linkedProjectName: "Kiki's World 2.0",
+    status: 'published',
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    tags: ['Meta', 'Reels', '528Hz', 'Reiki', 'KikisWorld'],
+  },
+  {
+    id: 'social-post-2',
+    content:
+      '🚀 Syncing all @grogusmom1989 GitHub repositories, Google Drive folders, and 1D World cellular automata directly in the background with Zero-Trust cloud backup.',
+    platforms: ['meta_threads', 'x_twitter', 'linkedin', 'discord'],
+    linkedProjectName: 'OmniSync Hub',
+    status: 'published',
+    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    tags: ['OmniSync', 'GitHub', 'Builder', 'PlayStore'],
+  },
+];
+
+export const getSocialAccounts = (): SocialAccount[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SOCIAL_ACCOUNTS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.SOCIAL_ACCOUNTS, JSON.stringify(DEFAULT_SOCIAL_ACCOUNTS));
+      return DEFAULT_SOCIAL_ACCOUNTS;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_SOCIAL_ACCOUNTS;
+  } catch {
+    return DEFAULT_SOCIAL_ACCOUNTS;
+  }
+};
+
+export const saveSocialAccounts = (accounts: SocialAccount[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SOCIAL_ACCOUNTS, JSON.stringify(accounts));
+  } catch (e) {
+    console.error('Failed to save social accounts', e);
+  }
+};
+
+export const getSocialPosts = (): SocialPost[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SOCIAL_POSTS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.SOCIAL_POSTS, JSON.stringify(DEFAULT_SOCIAL_POSTS));
+      return DEFAULT_SOCIAL_POSTS;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : DEFAULT_SOCIAL_POSTS;
+  } catch {
+    return DEFAULT_SOCIAL_POSTS;
+  }
+};
+
+export const saveSocialPosts = (posts: SocialPost[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SOCIAL_POSTS, JSON.stringify(posts));
+  } catch (e) {
+    console.error('Failed to save social posts', e);
+  }
+};
+
+
 
 
 

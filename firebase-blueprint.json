@@ -6,14 +6,16 @@
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
         "email": { "type": "string", "maxLength": 256 },
         "displayName": { "type": "string", "maxLength": 128 },
         "photoURL": { "type": "string", "maxLength": 1024 },
+        "githubUsername": { "type": "string", "maxLength": 100 },
         "paypalHandle": { "type": "string", "maxLength": 64 },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
       },
-      "required": ["id", "email", "createdAt", "updatedAt"]
+      "required": ["id", "uid", "email", "updatedAt"]
     },
     "Project": {
       "title": "Project",
@@ -22,15 +24,21 @@
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
         "userId": { "type": "string", "maxLength": 128 },
-        "name": { "type": "string", "maxLength": 128, "minLength": 1 },
+        "name": { "type": "string", "maxLength": 200, "minLength": 1 },
         "description": { "type": "string", "maxLength": 2048 },
-        "category": { "type": "string", "maxLength": 64 },
-        "status": { "type": "string", "enum": ["active", "archived", "concept"] },
-        "tags": { "type": "array", "description": "Up to 10 project tags" },
+        "source": { "type": "string", "enum": ["github", "drive", "custom", "internal", "upload"] },
+        "status": { "type": "string", "enum": ["active", "in_progress", "deployed", "archived", "concept"] },
+        "tags": { "type": "array", "description": "Up to 25 project tags" },
+        "techStack": { "type": "array", "description": "Up to 25 tech stack items" },
+        "url": { "type": "string", "maxLength": 1024 },
+        "homepageUrl": { "type": "string", "maxLength": 1024 },
         "repoFullName": { "type": "string", "maxLength": 256 },
-        "driveFolderId": { "type": "string", "maxLength": 128 },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "driveFolderId": { "type": "string", "maxLength": 200 },
+        "version": { "type": "string", "maxLength": 64 },
+        "notes": { "type": "string", "maxLength": 5000 },
+        "isPinned": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
       },
       "required": ["id", "userId", "name", "status", "createdAt", "updatedAt"]
     },
@@ -41,16 +49,17 @@
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
         "userId": { "type": "string", "maxLength": 128 },
-        "title": { "type": "string", "maxLength": 256, "minLength": 1 },
-        "description": { "type": "string", "maxLength": 4096 },
+        "title": { "type": "string", "maxLength": 300, "minLength": 1 },
+        "description": { "type": "string", "maxLength": 5000 },
         "status": { "type": "string", "enum": ["todo", "in_progress", "done"] },
         "priority": { "type": "string", "enum": ["low", "medium", "high"] },
         "source": { "type": "string", "enum": ["manual", "github", "drive", "ai", "bridge"] },
         "sourceUrl": { "type": "string", "maxLength": 1024 },
-        "sourceTitle": { "type": "string", "maxLength": 256 },
+        "sourceTitle": { "type": "string", "maxLength": 300 },
         "tags": { "type": "array" },
         "dueDate": { "type": "string", "maxLength": 64 },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
       },
       "required": ["id", "userId", "title", "status", "priority", "createdAt"]
     },
@@ -61,14 +70,14 @@
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
         "userId": { "type": "string", "maxLength": 128 },
-        "title": { "type": "string", "maxLength": 256, "minLength": 1 },
-        "content": { "type": "string", "maxLength": 16384 },
+        "title": { "type": "string", "maxLength": 300, "minLength": 1 },
+        "content": { "type": "string", "maxLength": 50000 },
         "tags": { "type": "array" },
-        "linkedFileId": { "type": "string", "maxLength": 128 },
-        "linkedRepo": { "type": "string", "maxLength": 256 },
-        "color": { "type": "string", "maxLength": 32 },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "pinned": { "type": "boolean" },
+        "linkedDriveFileId": { "type": "string", "maxLength": 200 },
+        "linkedGithubRepo": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
       },
       "required": ["id", "userId", "title", "content", "updatedAt"]
     },
@@ -79,32 +88,20 @@
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
         "userId": { "type": "string", "maxLength": 128 },
-        "name": { "type": "string", "maxLength": 128, "minLength": 1 },
-        "sourceModule": { "type": "string", "maxLength": 64 },
-        "targetModule": { "type": "string", "maxLength": 64 },
-        "status": { "type": "string", "enum": ["active", "paused", "syncing", "error"] },
-        "autoSync": { "type": "boolean" },
-        "syncIntervalMinutes": { "type": "number" },
-        "lastSyncAt": { "type": "string", "format": "date-time" },
-        "packetsCount": { "type": "number" }
+        "name": { "type": "string", "maxLength": 200, "minLength": 1 },
+        "sourceModule": { "type": "string", "maxLength": 100 },
+        "targetModule": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 1500 },
+        "status": { "type": "string", "enum": ["active", "paused", "syncing", "idle", "error"] },
+        "syncMode": { "type": "string", "enum": ["realtime", "event_driven", "poll", "manual"] },
+        "latencyMs": { "type": "number" },
+        "packetsCount": { "type": "number" },
+        "lastEventAt": { "type": "string", "maxLength": 64 },
+        "enabled": { "type": "boolean" },
+        "category": { "type": "string", "maxLength": 64 }
       },
       "required": ["id", "userId", "name", "sourceModule", "targetModule", "status"]
-    },
-    "SyncLog": {
-      "title": "SyncLog",
-      "description": "Event log entry recording sync operations across services.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string", "maxLength": 128 },
-        "userId": { "type": "string", "maxLength": 128 },
-        "source": { "type": "string", "enum": ["github", "drive", "all", "bridge"] },
-        "status": { "type": "string", "enum": ["success", "error", "warning"] },
-        "itemCount": { "type": "number" },
-        "message": { "type": "string", "maxLength": 1024 },
-        "durationMs": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "userId", "source", "status", "message", "timestamp"]
     }
   },
   "firestore": {
@@ -127,10 +124,6 @@
     "/users/{userId}/bridges/{bridgeId}": {
       "schema": "Bridge",
       "description": "Configured bridge connectors linking apps."
-    },
-    "/users/{userId}/syncLogs/{logId}": {
-      "schema": "SyncLog",
-      "description": "Audit and sync telemetry history."
     }
   }
 }
