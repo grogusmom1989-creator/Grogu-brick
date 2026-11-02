@@ -899,6 +899,96 @@ export default function App() {
     setSyncLogs(getSyncLogs());
   };
 
+  const handleBatchResolveConflicts = (
+    strategy: 'newest' | 'oldest' | 'local' | 'cloud',
+    entityFilter: 'all' | 'task' | 'note' = 'all'
+  ) => {
+    const targetConflicts = conflicts.filter(
+      (c) => entityFilter === 'all' || c.entityType === entityFilter
+    );
+    if (targetConflicts.length === 0) return;
+
+    let nextTasks = [...tasks];
+    let nextNotes = [...notes];
+
+    targetConflicts.forEach((conflict) => {
+      const localTime = new Date(conflict.localUpdatedAt).getTime();
+      const cloudTime = new Date(conflict.cloudUpdatedAt).getTime();
+
+      let chosen: 'local' | 'cloud' = 'local';
+      if (strategy === 'local') {
+        chosen = 'local';
+      } else if (strategy === 'cloud') {
+        chosen = 'cloud';
+      } else if (strategy === 'newest') {
+        chosen = localTime >= cloudTime ? 'local' : 'cloud';
+      } else if (strategy === 'oldest') {
+        chosen = localTime <= cloudTime ? 'local' : 'cloud';
+      }
+
+      if (conflict.entityType === 'task') {
+        const localTask = conflict.localVersion as WorkspaceTask;
+        const cloudTask = conflict.cloudVersion as WorkspaceTask;
+        if (chosen === 'local') {
+          const mergedTask: WorkspaceTask = {
+            ...localTask,
+            updatedAt: new Date().toISOString(),
+          };
+          nextTasks = nextTasks.map((t) => (t.id === mergedTask.id ? mergedTask : t));
+          queueAndFlushMutation({
+            entityType: 'task',
+            action: 'upsert',
+            entityId: mergedTask.id,
+            entityTitle: mergedTask.title,
+            payload: mergedTask,
+          });
+        } else {
+          nextTasks = nextTasks.some((t) => t.id === cloudTask.id)
+            ? nextTasks.map((t) => (t.id === cloudTask.id ? cloudTask : t))
+            : [cloudTask, ...nextTasks];
+        }
+      } else if (conflict.entityType === 'note') {
+        const localNote = conflict.localVersion as WorkspaceNote;
+        const cloudNote = conflict.cloudVersion as WorkspaceNote;
+        if (chosen === 'local') {
+          const mergedNote: WorkspaceNote = {
+            ...localNote,
+            updatedAt: new Date().toISOString(),
+          };
+          nextNotes = nextNotes.map((n) => (n.id === mergedNote.id ? mergedNote : n));
+          queueAndFlushMutation({
+            entityType: 'note',
+            action: 'upsert',
+            entityId: mergedNote.id,
+            entityTitle: mergedNote.title,
+            payload: mergedNote,
+          });
+        } else {
+          nextNotes = nextNotes.some((n) => n.id === cloudNote.id)
+            ? nextNotes.map((n) => (n.id === cloudNote.id ? cloudNote : n))
+            : [cloudNote, ...nextNotes];
+        }
+      }
+
+      removeSyncConflict(conflict.id);
+    });
+
+    setTasks(nextTasks);
+    saveStoredTasks(nextTasks);
+    setNotes(nextNotes);
+    saveStoredNotes(nextNotes);
+    setConflicts(getSyncConflicts());
+
+    addSyncLog({
+      source: 'all',
+      status: 'success',
+      itemCount: targetConflicts.length,
+      message: `Batch auto-resolved ${targetConflicts.length} ${entityFilter === 'all' ? '' : entityFilter + ' '}conflict(s) using [${strategy.toUpperCase()}] priority`,
+      durationMs: 22,
+    });
+    setSyncLogs(getSyncLogs());
+  };
+
   const handleSimulateConflict = () => {
     const sampleNote: WorkspaceNote = notes[0] || {
       id: 'note-conflict-demo',
@@ -1314,9 +1404,10 @@ export default function App() {
     setPinnedIds(nextPins);
   };
 
-  // 10. Export Snapshot
+  // 10. Export & Restore Backup Snapshot
   const handleExportWorkspace = () => {
     const snapshot = {
+      appName: 'Kiki Sync',
       exportDate: new Date().toISOString(),
       driveFilesCount: driveFiles.length,
       githubReposCount: githubRepos.length,
@@ -1332,9 +1423,44 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `omnisync-workspace-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `kiki-sync-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleImportWorkspace = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(String(event.target?.result || '{}'));
+        if (Array.isArray(parsed.tasks)) {
+          setTasks(parsed.tasks);
+          saveStoredTasks(parsed.tasks);
+        }
+        if (Array.isArray(parsed.notes)) {
+          setNotes(parsed.notes);
+          saveStoredNotes(parsed.notes);
+        }
+        if (Array.isArray(parsed.projects)) {
+          setProjects(parsed.projects);
+          saveStoredProjects(parsed.projects);
+        }
+        addSyncLog({
+          source: 'all',
+          status: 'success',
+          itemCount:
+            (parsed.tasks?.length || 0) +
+            (parsed.notes?.length || 0) +
+            (parsed.projects?.length || 0),
+          message: `Restored backup snapshot from "${file.name}"`,
+          durationMs: 25,
+        });
+        setSyncLogs(getSyncLogs());
+      } catch (err) {
+        console.error('Failed to restore backup file:', err);
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -1343,17 +1469,18 @@ export default function App() {
       <Navbar
         onOpenCommand={() => setIsCommandOpen(true)}
         onSyncAll={syncAll}
-        onOpenPlayStore={() => setIsPlayStoreModalOpen(true)}
+        onExportWorkspace={handleExportWorkspace}
         isSyncing={isSyncing || isDriveLoading || isGitHubLoading}
         syncCountdown={syncCountdown}
         autoSyncEnabled={syncConfig.autoSync}
         googleUser={googleUser}
         githubUser={githubUser}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        tasks={tasks}
+        notes={notes}
+        githubRepos={githubRepos}
+        onSelectTab={setActiveTab}
       />
-
-      {/* PWA Mobile App Download & Install Banner */}
-      <PWAInstallBanner />
 
       {/* Main Container */}
       <div className="flex-1 flex w-full">
@@ -1383,6 +1510,8 @@ export default function App() {
               onSelectTab={setActiveTab}
               onOpenCommand={() => setIsCommandOpen(true)}
               onSyncAll={syncAll}
+              onExportWorkspace={handleExportWorkspace}
+              onImportWorkspace={handleImportWorkspace}
               isSyncing={isSyncing || isDriveLoading || isGitHubLoading}
               googleUser={googleUser}
               onGoogleSignIn={handleGoogleSignIn}
@@ -1391,6 +1520,9 @@ export default function App() {
               driveFiles={driveFiles}
               githubRepos={githubRepos}
               githubIssues={githubIssues}
+              githubEvents={githubEvents}
+              socialPosts={socialPosts}
+              socialAccounts={socialAccounts}
               tasks={tasks}
               notes={notes}
               pinnedIds={pinnedIds}
@@ -1574,6 +1706,7 @@ export default function App() {
               onClearOutbox={() => setOutboxItems(clearOutbox())}
               conflicts={conflicts}
               onResolveConflict={handleResolveConflict}
+              onBatchResolveConflicts={handleBatchResolveConflicts}
               onSimulateConflict={handleSimulateConflict}
               onSelectTab={setActiveTab}
               onExportWorkspace={handleExportWorkspace}

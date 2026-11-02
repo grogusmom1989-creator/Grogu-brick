@@ -79,6 +79,7 @@ interface SyncCenterViewProps {
   onClearOutbox?: () => void;
   conflicts?: SyncConflict[];
   onResolveConflict?: (conflictId: string, resolution: 'local' | 'cloud' | 'both') => void;
+  onBatchResolveConflicts?: (strategy: 'newest' | 'oldest' | 'local' | 'cloud', entityFilter?: 'all' | 'task' | 'note') => void;
   onSimulateConflict?: () => void;
   onSelectTab?: (tab: AppTab) => void;
   onExportWorkspace: () => void;
@@ -106,6 +107,7 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
   onClearOutbox,
   conflicts = [],
   onResolveConflict,
+  onBatchResolveConflicts,
   onSimulateConflict,
   onSelectTab,
   onExportWorkspace,
@@ -114,6 +116,109 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
   const [timeRange, setTimeRange] = useState<'7d' | '14d' | '30d'>('30d');
   const [chartView, setChartView] = useState<'overview' | 'frequency' | 'duration' | 'conflicts'>('overview');
   const [livePulseTick, setLivePulseTick] = useState<number>(0);
+  const [bulkExportMenuOpen, setBulkExportMenuOpen] = useState(false);
+  const [batchEntityFilter, setBatchEntityFilter] = useState<'all' | 'task' | 'note'>('all');
+
+  const handleBulkExportReport = (format: 'json' | 'csv') => {
+    const dateStamp = new Date().toISOString().split('T')[0];
+    if (format === 'json') {
+      const report = {
+        reportTitle: 'Kiki Sync — Audit Report (Sync Logs & Conflict History)',
+        exportedAt: new Date().toISOString(),
+        summary: {
+          totalLogs: logs.length,
+          activeConflicts: conflicts.length,
+          daysAnalyzed: analyticsData.length,
+          totalSyncsInPeriod: analyticsData.reduce((a, b) => a + b.totalSyncs, 0),
+          totalConflictsResolvedInPeriod: analyticsData.reduce((a, b) => a + b.conflictsResolved, 0),
+        },
+        syncLogs: logs,
+        activeConflicts: conflicts,
+        conflictAndSyncHistory30d: analyticsData,
+      };
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kiki-sync-audit-report-${dateStamp}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const escapeCsv = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+      const headers = [
+        'RecordType',
+        'ID',
+        'Timestamp',
+        'SourceOrEntityType',
+        'StatusOrResolution',
+        'ItemCount',
+        'DurationMs',
+        'LocalUpdatedAt',
+        'CloudUpdatedAt',
+        'Details',
+      ];
+      const rows: string[][] = [];
+
+      logs.forEach((l) => {
+        rows.push([
+          'SYNC_LOG',
+          l.id,
+          l.timestamp,
+          l.source,
+          l.status,
+          String(l.itemCount),
+          String(l.durationMs || 0),
+          '',
+          '',
+          l.message,
+        ]);
+      });
+
+      conflicts.forEach((c) => {
+        rows.push([
+          'ACTIVE_CONFLICT',
+          c.id,
+          c.detectedAt,
+          c.entityType,
+          'UNRESOLVED',
+          '1',
+          '0',
+          c.localUpdatedAt,
+          c.cloudUpdatedAt,
+          `${c.entityTitle}: ${c.summary}`,
+        ]);
+      });
+
+      analyticsData.forEach((d) => {
+        rows.push([
+          'DAILY_CONFLICT_HISTORY',
+          `hist-${d.fullDate}`,
+          d.fullDate,
+          'all',
+          `Resolved: ${d.conflictsResolved} (Auto:${d.autoMerged}, Cloud:${d.cloudKept}, Local:${d.localKept})`,
+          String(d.totalSyncs),
+          String(d.avgDurationMs),
+          '',
+          '',
+          `Drive:${d.driveSyncs}, GitHub:${d.githubSyncs}, Workspace:${d.workspaceSyncs}`,
+        ]);
+      });
+
+      const csvContent = [
+        headers.map(escapeCsv).join(','),
+        ...rows.map((r) => r.map(escapeCsv).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kiki-sync-audit-report-${dateStamp}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    setBulkExportMenuOpen(false);
+  };
 
   // Generate continuous 30-day metrics blending real logs and historical synchronization baseline
   const daysCount = timeRange === '7d' ? 7 : timeRange === '14d' ? 14 : 30;
@@ -250,20 +355,58 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <RefreshCw className="w-5 h-5 text-indigo-400" />
-            <span>OmniSync Continuous Synchronization Engine</span>
+            <span>Kiki Sync • Backup &amp; Synchronization Center</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real-time synchronization across Google Drive, GitHub repositories, issues, and local knowledge.
+            Manage continuous backups, export external audit reports, and batch-resolve sync conflicts.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          {/* Bulk Export Data Dropdown (CSV / JSON Report of Sync Logs & Conflict History) */}
+          <div className="relative">
+            <button
+              onClick={() => setBulkExportMenuOpen((prev) => !prev)}
+              className="px-3 py-2 bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 border border-emerald-500/30 transition-colors"
+              title="Download a full CSV or JSON report of sync logs and conflict history for external auditing"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Bulk Export Data</span>
+            </button>
+
+            {bulkExportMenuOpen && (
+              <div className="absolute right-0 mt-2 w-60 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-40 space-y-1">
+                <div className="px-2.5 py-1 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
+                  Audit Report (Logs &amp; Conflicts)
+                </div>
+                <button
+                  onClick={() => handleBulkExportReport('csv')}
+                  className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-200 hover:bg-slate-800 flex items-center justify-between"
+                >
+                  <span>Download CSV Audit Report</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                    .CSV
+                  </span>
+                </button>
+                <button
+                  onClick={() => handleBulkExportReport('json')}
+                  className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-200 hover:bg-slate-800 flex items-center justify-between"
+                >
+                  <span>Download JSON Audit Report</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
+                    .JSON
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={onExportWorkspace}
             className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center gap-1.5 border border-slate-700 transition-colors"
           >
             <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Export Snapshot</span>
+            <span>Full Workspace Snapshot</span>
           </button>
 
           <button
@@ -892,6 +1035,83 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
             </button>
           )}
         </div>
+
+        {/* Batch Auto-Resolve All Toolbar */}
+        {conflicts.length > 0 && onBatchResolveConflicts && (
+          <div className="p-3.5 rounded-xl bg-slate-950/90 border border-indigo-500/30 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                <CheckCheck className="w-4 h-4 text-cyan-400" />
+                <span>Auto-Resolve All Batch Actions:</span>
+              </span>
+              <div className="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px]">
+                <button
+                  onClick={() => setBatchEntityFilter('all')}
+                  className={`px-2 py-1 rounded-md font-medium transition ${
+                    batchEntityFilter === 'all'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  All ({conflicts.length})
+                </button>
+                <button
+                  onClick={() => setBatchEntityFilter('task')}
+                  className={`px-2 py-1 rounded-md font-medium transition ${
+                    batchEntityFilter === 'task'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Tasks ({conflicts.filter((c) => c.entityType === 'task').length})
+                </button>
+                <button
+                  onClick={() => setBatchEntityFilter('note')}
+                  className={`px-2 py-1 rounded-md font-medium transition ${
+                    batchEntityFilter === 'note'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Notes ({conflicts.filter((c) => c.entityType === 'note').length})
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => onBatchResolveConflicts('newest', batchEntityFilter)}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                title="Auto-resolve conflicts by keeping the newest timestamp"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Keep Newest Timestamp</span>
+              </button>
+              <button
+                onClick={() => onBatchResolveConflicts('oldest', batchEntityFilter)}
+                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                title="Auto-resolve conflicts by keeping the oldest timestamp"
+              >
+                <History className="w-3.5 h-3.5" />
+                <span>Keep Oldest Timestamp</span>
+              </button>
+              <button
+                onClick={() => onBatchResolveConflicts('local', batchEntityFilter)}
+                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Select All Local</span>
+              </button>
+              <button
+                onClick={() => onBatchResolveConflicts('cloud', batchEntityFilter)}
+                className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1.5 transition"
+              >
+                <Cloud className="w-3.5 h-3.5" />
+                <span>Select All Cloud</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {conflicts.length === 0 ? (
           <div className="p-4 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center justify-between text-xs text-slate-400">
