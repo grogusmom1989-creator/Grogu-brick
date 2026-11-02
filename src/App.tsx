@@ -104,7 +104,11 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { PlayStoreModal } from './components/PlayStoreModal';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<AppTab>('overview');
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab') as AppTab | null;
+    return tabParam || 'overview';
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPlayStoreModalOpen, setIsPlayStoreModalOpen] = useState(false);
 

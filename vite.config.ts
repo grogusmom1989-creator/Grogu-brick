@@ -43,6 +43,36 @@ export default defineConfig(() => {
               purpose: 'maskable',
             },
           ],
+          shortcuts: [
+            {
+              name: 'Meta & All App Stores',
+              short_name: 'App Stores',
+              description: 'Launch Google Play, App Store, Meta Suite, Instagram, Threads & 25+ apps',
+              url: '/?tab=social',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+            },
+            {
+              name: 'Pull Everything & Sync',
+              short_name: 'Sync & Outbox',
+              description: 'Run universal background sync & conflict resolution',
+              url: '/?tab=sync',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+            },
+            {
+              name: 'My Projects Portfolio',
+              short_name: 'Projects',
+              description: 'View synced GitHub repos & Google Drive projects',
+              url: '/?tab=projects',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+            },
+            {
+              name: '1D World & Reiki HQ',
+              short_name: '1D World',
+              description: 'Open 528Hz Sound Healing & Reiki Alignment',
+              url: '/?tab=one_d_world',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+            },
+          ],
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,

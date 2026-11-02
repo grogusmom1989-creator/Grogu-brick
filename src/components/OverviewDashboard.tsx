@@ -142,6 +142,14 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <a
+            href="/build-playstore.sh"
+            download="build-playstore.sh"
+            className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold flex items-center gap-1 shadow-sm"
+            title="Download 1-Click Google Play Store (.aab) Build Script"
+          >
+            <span>Download Play Store Builder (.sh)</span>
+          </a>
+          <a
             href="https://play.google.com/store/apps"
             target="_blank"
             rel="noreferrer"

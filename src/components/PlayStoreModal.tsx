@@ -411,6 +411,13 @@ bubblewrap build`;
                       <Download className="w-3.5 h-3.5" />
                       assetlinks.json
                     </button>
+                    <button
+                      onClick={() => downloadFile('build-playstore.sh', bubblewrapCommand)}
+                      className="px-3 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-semibold text-xs flex items-center gap-1.5 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      build-playstore.sh
+                    </button>
                     <a
                       href="https://www.pwabuilder.com"
                       target="_blank"
