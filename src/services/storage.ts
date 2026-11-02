@@ -101,7 +101,7 @@ export const DEFAULT_PROJECTS: WorkspaceProject[] = [
 const DEFAULT_CONFIG: SyncConfig = {
   autoSync: true,
   intervalMinutes: 5,
-  githubUsername: 'torvalds',
+  githubUsername: 'grogusmom1989',
 };
 
 const DEFAULT_TASKS: WorkspaceTask[] = [
@@ -195,7 +195,13 @@ export const saveStoredNotes = (notes: WorkspaceNote[]) => {
 export const getSyncConfig = (): SyncConfig => {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CONFIG);
-    return raw ? { ...DEFAULT_CONFIG, ...JSON.parse(raw) } : DEFAULT_CONFIG;
+    if (!raw) return DEFAULT_CONFIG;
+    const parsed = JSON.parse(raw);
+    if (!parsed.githubUsername || parsed.githubUsername === 'torvalds') {
+      parsed.githubUsername = 'grogusmom1989';
+      localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify({ ...DEFAULT_CONFIG, ...parsed }));
+    }
+    return { ...DEFAULT_CONFIG, ...parsed };
   } catch {
     return DEFAULT_CONFIG;
   }

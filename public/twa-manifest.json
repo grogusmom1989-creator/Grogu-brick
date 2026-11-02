@@ -1,0 +1,52 @@
+{
+  "packageId": "app.omnisync.hub",
+  "host": "ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app",
+  "name": "OmniSync Hub",
+  "launcherName": "OmniSync",
+  "display": "standalone",
+  "themeColor": "#0F172A",
+  "navigationColor": "#090D16",
+  "navigationColorDark": "#090D16",
+  "navigationDividerColor": "#1E293B",
+  "navigationDividerColorDark": "#1E293B",
+  "backgroundColor": "#090D16",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/pwa-512x512.png",
+  "maskableIconUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/pwa-maskable-512x512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "omnisync-release-key"
+  },
+  "appVersionName": "2.0.0",
+  "appVersionCode": 2,
+  "shortcuts": [
+    {
+      "name": "Pull Everything & Sync",
+      "shortName": "Pull All",
+      "url": "/?action=pull-all",
+      "chosenIconUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/pwa-192x192.png"
+    },
+    {
+      "name": "Projects Portfolio",
+      "shortName": "Projects",
+      "url": "/?tab=projects",
+      "chosenIconUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/pwa-192x192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait-primary",
+  "fingerprints": []
+}

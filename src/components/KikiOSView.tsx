@@ -779,6 +779,7 @@ Bridge Nodes: 8 Topology Vertices`;
                               description: osNote,
                               status: 'todo',
                               priority: 'medium',
+                              source: 'manual',
                               tags: ['KikiOS', 'Scratchpad'],
                             });
                             playChime(639, 0.2);
