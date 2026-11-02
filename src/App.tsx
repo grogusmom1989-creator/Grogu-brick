@@ -72,6 +72,9 @@ import { RemixedAppView } from './components/RemixedAppView';
 import { PayPalEarningsView } from './components/PayPalEarningsView';
 import { ProjectPortfolioView } from './components/ProjectPortfolioView';
 import { ConnectorsBridgesView } from './components/ConnectorsBridgesView';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('overview');
@@ -591,6 +594,9 @@ export default function App() {
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
       />
 
+      {/* PWA Mobile App Download & Install Banner */}
+      <PWAInstallBanner />
+
       {/* Main Container */}
       <div className="flex-1 flex w-full">
         {/* Left Sidebar */}
@@ -612,7 +618,7 @@ export default function App() {
         />
 
         {/* Center Main View Area */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto overflow-y-auto">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto overflow-y-auto pb-24 lg:pb-8">
           {activeTab === 'overview' && (
             <OverviewDashboard
               onSelectTab={setActiveTab}
@@ -897,6 +903,17 @@ export default function App() {
         onSave={handleSaveGitHub}
         isLoading={isGitHubLoading}
       />
+
+      {/* Mobile Bottom Navigation Bar (Phone Screens) */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenSidebar={() => setSidebarOpen(true)}
+        bridgesCount={bridges.length}
+      />
+
+      {/* Offline Status Connectivity Banner */}
+      <OfflineIndicator />
     </div>
   );
 }

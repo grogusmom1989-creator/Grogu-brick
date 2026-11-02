@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { GitHubUser } from '../services/github';
+import { PWAHeaderButton } from './PWAInstallBanner';
 
 interface NavbarProps {
   onOpenCommand: () => void;
@@ -110,6 +111,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-cyan-400' : ''}`} />
           <span className="hidden sm:inline">{isSyncing ? 'Syncing...' : 'Sync All'}</span>
         </button>
+
+        {/* PWA Mobile App Install Button */}
+        <PWAHeaderButton />
 
         {/* Connected Services Quick Status */}
         <div className="flex items-center gap-1.5 border-l border-slate-800 pl-3">
