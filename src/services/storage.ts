@@ -1,4 +1,4 @@
-import { WorkspaceTask, WorkspaceNote, SyncConfig, SyncLogEntry, GoogleDriveFile } from '../types';
+import { WorkspaceTask, WorkspaceNote, SyncConfig, SyncLogEntry, GoogleDriveFile, WorkspaceProject } from '../types';
 import { GitHubSyncData } from './github';
 
 const STORAGE_KEYS = {
@@ -10,7 +10,82 @@ const STORAGE_KEYS = {
   CACHED_GITHUB: 'omnisync_cache_github_v1',
   PINNED_ITEMS: 'omnisync_pinned_items_v1',
   THEME: 'omnisync_theme_v1',
+  PROJECTS: 'omnisync_projects_v2',
 };
+
+export const DEFAULT_PROJECTS: WorkspaceProject[] = [
+  {
+    id: 'proj-omnisync',
+    name: 'OmniSync Hub',
+    description: 'Central continuous sync workspace connecting GitHub, Google Drive, Action Items, Notes, and AI.',
+    source: 'internal',
+    status: 'deployed',
+    url: 'https://github.com/grogusmom1989',
+    tags: ['Productivity', 'Cloud-Sync', 'Command-Center'],
+    techStack: ['React', 'TypeScript', 'Tailwind CSS', 'Vite', 'Firebase Auth'],
+    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    isPinned: true,
+    version: '1.5.0',
+    notes: 'The master hub coordinating all connected projects and cloud drives.',
+  },
+  {
+    id: 'proj-1d-world',
+    name: '1D World & Reiki HQ',
+    description: '1-Dimensional Cellular Automata simulation, Solfeggio sound therapy engine, and Quantum Reiki alignment field.',
+    source: 'internal',
+    status: 'deployed',
+    tags: ['Reiki', 'Sound-Therapy', 'Wolfram-Automata', 'Healing'],
+    techStack: ['Web Audio API', 'Canvas 2D', 'Solfeggio Frequencies', 'Physics Engine'],
+    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    isPinned: true,
+    version: '2.4.0',
+    notes: '528Hz DNA repair, 432Hz Miracle frequency, and rule 30/90/110 dynamic cellular automata.',
+  },
+  {
+    id: 'proj-kikis-world',
+    name: "Kiki's World 2.0",
+    description: 'Immersive media cinema, Solfeggio ambient sound generator, interactive Crystal Healing grid, and Daily Divine Oracle deck.',
+    source: 'internal',
+    status: 'deployed',
+    tags: ['Cinema', 'Audio-Visualizer', 'Crystals', 'Oracle-Deck'],
+    techStack: ['HTML5 Video/Audio', 'Canvas', 'Web Audio API', 'React'],
+    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    isPinned: true,
+    version: '2.0.0',
+    notes: 'Multi-screen streaming, binaural beats, chakra alignment crystal nodes.',
+  },
+  {
+    id: 'proj-remix-studio',
+    name: 'Remixed App Studio',
+    description: 'Interactive app remixing sandbox with code injection forge, live preview runner, and custom theme presets.',
+    source: 'internal',
+    status: 'active',
+    tags: ['Remix', 'Code-Forge', 'Sandbox', 'Generative'],
+    techStack: ['TypeScript', 'Tailwind', 'Dynamic Components'],
+    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    isPinned: false,
+    version: '1.2.0',
+    notes: 'Used for prototyping rapid adaptations and variations of core hubs.',
+  },
+  {
+    id: 'proj-paypal-hub',
+    name: 'Creator Earnings & PayPal Hub',
+    description: 'Monetization dashboard with direct PayPal payment links, QR code, donation tiers, and embeddable badges.',
+    source: 'internal',
+    status: 'deployed',
+    tags: ['Monetization', 'PayPal', 'Creator-Economy'],
+    techStack: ['PayPal API / PayPal.me', 'React', 'SVG QR Engine'],
+    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    isPinned: false,
+    version: '1.0.0',
+    notes: 'Direct payout to grogusmom1989@gmail.com / PayPal handle.',
+  },
+];
 
 const DEFAULT_CONFIG: SyncConfig = {
   autoSync: true,
@@ -210,3 +285,26 @@ export const togglePinnedId = (id: string): string[] => {
     return [];
   }
 };
+
+export const getStoredProjects = (): WorkspaceProject[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PROJECTS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(DEFAULT_PROJECTS));
+      return DEFAULT_PROJECTS;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_PROJECTS;
+  } catch {
+    return DEFAULT_PROJECTS;
+  }
+};
+
+export const saveStoredProjects = (projects: WorkspaceProject[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
+  } catch (e) {
+    console.error('Failed to save projects', e);
+  }
+};
+

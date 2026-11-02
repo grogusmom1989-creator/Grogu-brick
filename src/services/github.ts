@@ -31,14 +31,22 @@ const getHeaders = (token?: string) => {
   return headers;
 };
 
+export const sanitizeGitHubUsername = (input: string): string => {
+  return input
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9-_]/g, '')
+    .slice(0, 39);
+};
+
 export const fetchGitHubData = async (
   username?: string,
   token?: string
 ): Promise<GitHubSyncData> => {
   const trimmedToken = token?.trim();
-  const trimmedUser = username?.trim();
+  const rawUser = username?.trim();
 
-  if (!trimmedToken && !trimmedUser) {
+  if (!trimmedToken && !rawUser) {
     return {
       user: null,
       repos: [],
@@ -49,11 +57,13 @@ export const fetchGitHubData = async (
     };
   }
 
+  // GitHub handles cannot have spaces or special symbols
+  const cleanUser = rawUser ? sanitizeGitHubUsername(rawUser) : '';
   const headers = getHeaders(trimmedToken);
 
   try {
     let user: GitHubUser | null = null;
-    let effectiveUsername = trimmedUser;
+    let effectiveUsername = cleanUser;
 
     // 1. Fetch User Profile
     if (trimmedToken) {
@@ -61,21 +71,48 @@ export const fetchGitHubData = async (
       if (userRes.ok) {
         user = await userRes.json();
         effectiveUsername = user?.login || effectiveUsername;
-      } else if (trimmedUser) {
-        // Fallback to public user endpoint
-        const pubRes = await fetch(`https://api.github.com/users/${trimmedUser}`, { headers });
-        if (pubRes.ok) user = await pubRes.json();
+      } else if (cleanUser) {
+        const pubRes = await fetch(`https://api.github.com/users/${encodeURIComponent(cleanUser)}`, { headers });
+        if (pubRes.ok) {
+          user = await pubRes.json();
+        }
       }
-    } else if (trimmedUser) {
-      const pubRes = await fetch(`https://api.github.com/users/${trimmedUser}`, { headers });
-      if (!pubRes.ok) {
-        throw new Error(`GitHub user "${trimmedUser}" not found or rate limited.`);
+    } else if (cleanUser) {
+      const pubRes = await fetch(`https://api.github.com/users/${encodeURIComponent(cleanUser)}`, { headers });
+      if (pubRes.status === 404) {
+        return {
+          user: null,
+          repos: [],
+          issues: [],
+          events: [],
+          starred: [],
+          error: `GitHub user "${rawUser}" was not found. Please verify your GitHub handle (handles cannot contain spaces).`,
+        };
       }
-      user = await pubRes.json();
+      if (pubRes.status === 403) {
+        return {
+          user: null,
+          repos: [],
+          issues: [],
+          events: [],
+          starred: [],
+          error: 'GitHub API rate limit exceeded for anonymous requests. Add a Personal Access Token in settings for 5,000 requests/hr.',
+        };
+      }
+      if (pubRes.ok) {
+        user = await pubRes.json();
+      }
     }
 
     if (!effectiveUsername && !user) {
-      throw new Error('Unable to authenticate with GitHub. Check your token or username.');
+      return {
+        user: null,
+        repos: [],
+        issues: [],
+        events: [],
+        starred: [],
+        error: `Unable to find GitHub user "${rawUser}". Please check your handle or use a Personal Access Token.`,
+      };
     }
 
     // 2. Fetch Repositories
@@ -88,7 +125,7 @@ export const fetchGitHubData = async (
     }
     
     if (repos.length === 0 && effectiveUsername) {
-      const pubReposRes = await fetch(`https://api.github.com/users/${effectiveUsername}/repos?sort=updated&per_page=100`, { headers });
+      const pubReposRes = await fetch(`https://api.github.com/users/${encodeURIComponent(effectiveUsername)}/repos?sort=updated&per_page=100`, { headers });
       if (pubReposRes.ok) {
         repos = await pubReposRes.json();
       }
@@ -110,7 +147,7 @@ export const fetchGitHubData = async (
     // 4. Fetch Events / Commits Activity
     let events: GitHubEvent[] = [];
     if (effectiveUsername) {
-      const eventsRes = await fetch(`https://api.github.com/users/${effectiveUsername}/events?per_page=30`, { headers });
+      const eventsRes = await fetch(`https://api.github.com/users/${encodeURIComponent(effectiveUsername)}/events?per_page=30`, { headers });
       if (eventsRes.ok) {
         events = await eventsRes.json();
       }
@@ -119,7 +156,7 @@ export const fetchGitHubData = async (
     // 5. Fetch Starred Repos
     let starred: GitHubRepo[] = [];
     if (effectiveUsername) {
-      const starredRes = await fetch(`https://api.github.com/users/${effectiveUsername}/starred?per_page=20`, { headers });
+      const starredRes = await fetch(`https://api.github.com/users/${encodeURIComponent(effectiveUsername)}/starred?per_page=20`, { headers });
       if (starredRes.ok) {
         starred = await starredRes.json();
       }
@@ -133,14 +170,14 @@ export const fetchGitHubData = async (
       starred: Array.isArray(starred) ? starred : [],
     };
   } catch (err: any) {
-    console.error('GitHub fetch failed:', err);
+    // Return gracefully without throwing unhandled exceptions
     return {
       user: null,
       repos: [],
       issues: [],
       events: [],
       starred: [],
-      error: err.message || 'Failed to sync GitHub data',
+      error: err.message || 'Unable to connect to GitHub at this time.',
     };
   }
 };

@@ -15,6 +15,12 @@ import {
   Layers,
   CircleDot,
   FileCheck,
+  Compass,
+  Heart,
+  Film,
+  Code2,
+  DollarSign,
+  FolderGit2,
 } from 'lucide-react';
 import { GoogleDriveFile, GitHubRepo, GitHubIssue, WorkspaceTask, WorkspaceNote, AppTab } from '../types';
 import { GoogleSignInButton } from './GoogleSignInButton';
@@ -36,6 +42,7 @@ interface OverviewDashboardProps {
   tasks: WorkspaceTask[];
   notes: WorkspaceNote[];
   pinnedIds: string[];
+  projectsCount?: number;
   onOpenNewTaskModal: () => void;
   onUpdateTaskStatus: (id: string, status: any) => void;
 }
@@ -55,6 +62,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   tasks,
   notes,
   pinnedIds,
+  projectsCount = 0,
   onOpenNewTaskModal,
   onUpdateTaskStatus,
 }) => {
@@ -282,6 +290,119 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               <span>Open Copilot</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
+          </div>
+
+          {/* My Projects & Repositories Portfolio Card */}
+          <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-cyan-950/30 border border-indigo-500/30 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono border border-indigo-500/30">
+                  {projectsCount} Projects in Hub
+                </span>
+              </div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-white flex items-center gap-1.5">
+                <FolderGit2 className="w-4 h-4 text-indigo-400" />
+                <span>My Projects & Repositories Portfolio</span>
+              </h3>
+              <p className="text-xs text-slate-300">
+                Pull in all your own projects from GitHub, Google Drive, and custom manifests into your centralized portfolio with live in-app preview.
+              </p>
+            </div>
+
+            <button
+              onClick={() => onSelectTab('projects')}
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all"
+            >
+              <span>View Projects ({projectsCount})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* 1D World & Kiki Reiki HQ Portal Card */}
+          <div className="bg-gradient-to-r from-cyan-950/30 via-slate-900 to-indigo-950/30 border border-cyan-500/20 rounded-xl p-5 flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-cyan-400" />
+                <span>1D World & Kiki 1D Network Healing Reiki HQ</span>
+              </h3>
+              <p className="text-xs text-slate-300">
+                Continuous 1D particle physics simulator, 7-node Solfeggio sound meridian alignment, and Wolfram 1D automata.
+              </p>
+            </div>
+
+            <button
+              onClick={() => onSelectTab('one_d_world')}
+              className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-medium whitespace-nowrap shadow-sm flex items-center gap-1.5"
+            >
+              <span>Enter 1D World</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Kiki's World 2.0 Content Theater & Media Card */}
+          <div className="bg-gradient-to-r from-purple-950/30 via-slate-900 to-pink-950/30 border border-purple-500/25 rounded-xl p-5 flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                <Film className="w-3.5 h-3.5 text-pink-400" />
+                <span>Kiki's World 2.0 • Content Theater & Media Player</span>
+              </h3>
+              <p className="text-xs text-slate-300">
+                Play your Google Drive videos and music, stream Solfeggio soundscapes, view all content, and activate the 2.0 Crystal Grid.
+              </p>
+            </div>
+
+            <button
+              onClick={() => onSelectTab('kikis_world')}
+              className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-md shadow-purple-500/20 flex items-center gap-1.5"
+            >
+              <span>Enter 2.0 Theater</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* 2-Column Subgrid: Remixed App Studio & PayPal Earnings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Remixed App Studio Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3">
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
+                  <Code2 className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Remixed App Studio</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-1">
+                  Customize and launch remixed codebases, applet extensions, and live sandbox presets.
+                </p>
+              </div>
+
+              <button
+                onClick={() => onSelectTab('remix')}
+                className="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium rounded-lg flex items-center justify-center gap-1 transition-colors"
+              >
+                <span>Open Remixer Studio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* PayPal Creator Earnings Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3">
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>PayPal Creator Earnings</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-1">
+                  Monetize your hub with PayPal tips, Reiki session energy exchanges, and sponsorships.
+                </p>
+              </div>
+
+              <button
+                onClick={() => onSelectTab('earnings')}
+                className="w-full py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-medium rounded-lg flex items-center justify-center gap-1 transition-colors"
+              >
+                <span>View PayPal Revenue</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 

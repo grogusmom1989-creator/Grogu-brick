@@ -1,12 +1,45 @@
 export type AppTab = 
   | 'overview' 
+  | 'projects'
   | 'drive' 
   | 'github' 
   | 'tasks' 
   | 'notes' 
   | 'timeline' 
   | 'sync' 
-  | 'ai';
+  | 'ai'
+  | 'one_d_world'
+  | 'kikis_world'
+  | 'remix'
+  | 'earnings';
+
+export type ProjectSource = 'github' | 'drive' | 'custom' | 'internal' | 'upload';
+export type ProjectStatus = 'active' | 'in_progress' | 'deployed' | 'archived' | 'concept';
+
+export interface WorkspaceProject {
+  id: string;
+  name: string;
+  description: string;
+  source: ProjectSource;
+  status: ProjectStatus;
+  url?: string;
+  previewUrl?: string;
+  repoFullName?: string;
+  driveFolderId?: string;
+  driveViewUrl?: string;
+  language?: string;
+  stars?: number;
+  forks?: number;
+  openIssues?: number;
+  tags: string[];
+  techStack: string[];
+  lastSyncedAt?: string;
+  updatedAt: string;
+  createdAt: string;
+  isPinned?: boolean;
+  notes?: string;
+  version?: string;
+}
 
 export interface GoogleDriveFile {
   id: string;
@@ -120,7 +153,7 @@ export interface SyncConfig {
 
 export interface UnifiedItem {
   id: string;
-  type: 'drive' | 'github_repo' | 'github_issue' | 'task' | 'note';
+  type: 'drive' | 'github_repo' | 'github_issue' | 'task' | 'note' | 'one_d';
   title: string;
   subtitle: string;
   date: string;
@@ -128,3 +161,116 @@ export interface UnifiedItem {
   iconType: string;
   raw: any;
 }
+
+export interface OneDEntity {
+  id: string;
+  x: number; // 0 to 1000
+  vx: number; // velocity
+  energy: number; // 0 to 100
+  frequency: number; // Hz (e.g. 528, 432, 639)
+  type: 'carrier' | 'healer' | 'pulse' | 'resonator';
+  color: string;
+  label: string;
+}
+
+export interface OneDHealingNode {
+  id: string;
+  name: string;
+  sanskrit: string;
+  frequency: number; // Hz
+  position: number; // 0 to 100 along the meridian
+  color: string;
+  description: string;
+  affirmation: string;
+  alignment: number; // 0 to 100%
+}
+
+export interface OneDAutomataConfig {
+  rule: number; // 0 to 255 (e.g. 30, 90, 110, 184)
+  width: number;
+  steps: number;
+}
+
+export interface CrystalNode {
+  id: string;
+  name: string;
+  stone: string;
+  x: number; // 0 to 100%
+  y: number; // 0 to 100%
+  frequency: number;
+  color: string;
+  glowColor: string;
+  chakra: string;
+  property: string;
+  activated: boolean;
+}
+
+export interface OracleCard {
+  id: string;
+  title: string;
+  subtitle: string;
+  glyph: string;
+  color: string;
+  frequency: number;
+  guidance: string;
+  affirmation: string;
+  alignmentAction: string;
+}
+
+export interface AmbientTrack {
+  id: string;
+  name: string;
+  frequency: number;
+  type: 'carrier' | 'binaural' | 'drone' | 'chime';
+  volume: number;
+  active: boolean;
+  color: string;
+}
+
+export interface RemixedApp {
+  id: string;
+  name: string;
+  tagline: string;
+  version: string;
+  baseApp: string; // e.g. "Kiki's World 2.0", "OmniSync Hub", "1D Universe"
+  themeColor: string;
+  category: 'wellness' | 'developer' | 'media' | 'generative' | 'custom';
+  tags: string[];
+  config: {
+    ambientFrequency?: number;
+    visualizerTheme?: string;
+    autoSyncEnabled?: boolean;
+    syncIntervalMinutes?: number;
+    customCodeSnippet?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayPalConfig {
+  paypalHandle: string; // e.g. "kikireiki" or email
+  isEmail: boolean;
+  currency: string; // USD, EUR, GBP, CAD
+  thankYouMessage: string;
+  customTiers: Array<{
+    id: string;
+    label: string;
+    amount: number;
+    description: string;
+    popular?: boolean;
+  }>;
+}
+
+export interface HubEarningRecord {
+  id: string;
+  donorName: string;
+  amount: number;
+  currency: string;
+  date: string;
+  source: 'paypal' | 'tip_jar' | 'reiki_session' | 'remix_unlock';
+  note?: string;
+}
+
+
+
+

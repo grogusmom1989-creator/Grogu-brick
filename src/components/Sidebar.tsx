@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard,
+  FolderGit2,
   Cloud,
   Github,
   CheckSquare,
@@ -8,6 +9,10 @@ import {
   Activity,
   RefreshCw,
   Sparkles,
+  Compass,
+  Film,
+  Code2,
+  DollarSign,
   LogOut,
   ExternalLink,
   ChevronRight,
@@ -25,6 +30,7 @@ interface SidebarProps {
   githubRepoCount: number;
   taskCount: number;
   noteCount: number;
+  projectCount?: number;
   googleUser: User | null;
   githubUser: GitHubUser | null;
   onLogoutGoogle: () => void;
@@ -40,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   githubRepoCount,
   taskCount,
   noteCount,
+  projectCount,
   googleUser,
   githubUser,
   onLogoutGoogle,
@@ -51,6 +58,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Hub Overview',
       icon: LayoutDashboard,
       badge: null,
+    },
+    {
+      id: 'projects' as AppTab,
+      label: 'My Projects',
+      icon: FolderGit2,
+      badge: projectCount && projectCount > 0 ? projectCount : null,
+      badgeColor: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30',
     },
     {
       id: 'drive' as AppTab,
@@ -98,6 +112,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Sparkles,
       badge: 'AI',
       badgeColor: 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 border border-indigo-500/30',
+    },
+    {
+      id: 'one_d_world' as AppTab,
+      label: '1D World & Reiki HQ',
+      icon: Compass,
+      badge: '1D',
+      badgeColor: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30',
+    },
+    {
+      id: 'kikis_world' as AppTab,
+      label: "Kiki's World 2.0",
+      icon: Film,
+      badge: '2.0',
+      badgeColor: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30',
+    },
+    {
+      id: 'remix' as AppTab,
+      label: 'Remixed App Studio',
+      icon: Code2,
+      badge: 'Remix',
+      badgeColor: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30',
+    },
+    {
+      id: 'earnings' as AppTab,
+      label: 'PayPal Creator Earnings',
+      icon: DollarSign,
+      badge: '$',
+      badgeColor: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30',
     },
   ];
 

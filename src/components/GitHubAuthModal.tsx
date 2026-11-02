@@ -89,14 +89,18 @@ export const GitHubAuthModal: React.FC<GitHubAuthModalProps> = ({
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. torvalds or your-handle"
+                onChange={(e) => {
+                  // GitHub usernames cannot contain spaces; convert spaces to hyphens and remove invalid symbols
+                  const formatted = e.target.value.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '');
+                  setUsername(formatted);
+                }}
+                placeholder="e.g. torvalds or your-github-handle"
                 className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 required
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
-              Used to pull public repositories, commit history, and activity events.
+              GitHub handles cannot contain spaces. Use hyphens (e.g. <span className="font-mono text-indigo-300">octocat</span> or <span className="font-mono text-indigo-300">your-name</span>).
             </p>
           </div>
 

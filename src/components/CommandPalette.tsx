@@ -6,13 +6,18 @@ import {
   CheckSquare,
   FileText,
   Sparkles,
+  Compass,
+  Film,
+  Code2,
+  DollarSign,
   RefreshCw,
   ExternalLink,
   X,
   File,
   ArrowRight,
+  FolderGit2,
 } from 'lucide-react';
-import { GoogleDriveFile, GitHubRepo, GitHubIssue, WorkspaceTask, WorkspaceNote, AppTab } from '../types';
+import { GoogleDriveFile, GitHubRepo, GitHubIssue, WorkspaceTask, WorkspaceNote, WorkspaceProject, AppTab } from '../types';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -22,6 +27,7 @@ interface CommandPaletteProps {
   githubIssues: GitHubIssue[];
   tasks: WorkspaceTask[];
   notes: WorkspaceNote[];
+  projects?: WorkspaceProject[];
   onSelectTab: (tab: AppTab) => void;
   onSyncAll: () => void;
   onSelectDriveFile: (file: GoogleDriveFile) => void;
@@ -38,6 +44,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   githubIssues,
   tasks,
   notes,
+  projects = [],
   onSelectTab,
   onSyncAll,
   onSelectDriveFile,
@@ -107,10 +114,81 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         onClose();
       },
     },
+    {
+      id: 'action-1d-world',
+      title: 'Open 1D World & Reiki HQ',
+      subtitle: 'Explore 1D particle physics, Solfeggio sound harmonics & Wolfram automata',
+      category: 'Actions',
+      icon: Compass,
+      action: () => {
+        onSelectTab('one_d_world');
+        onClose();
+      },
+    },
+    {
+      id: 'action-kikis-world',
+      title: "Launch Kiki's World 2.0 Content Theater",
+      subtitle: 'Play Google Drive videos, music, view all content & crystal sanctuary',
+      category: 'Actions',
+      icon: Film,
+      action: () => {
+        onSelectTab('kikis_world');
+        onClose();
+      },
+    },
+    {
+      id: 'action-remix',
+      title: 'Open Remixed App Studio & Sandbox',
+      subtitle: 'Explore live applet sandboxes, remix configurations, and code snippets',
+      category: 'Actions',
+      icon: Code2,
+      action: () => {
+        onSelectTab('remix');
+        onClose();
+      },
+    },
+    {
+      id: 'action-projects',
+      title: 'Open My Projects & Repositories Portfolio',
+      subtitle: 'View, pull in, and manage all your GitHub repos, Drive projects & manifests',
+      category: 'Actions',
+      icon: FolderGit2,
+      action: () => {
+        onSelectTab('projects');
+        onClose();
+      },
+    },
+    {
+      id: 'action-earnings',
+      title: 'Open PayPal Creator Earnings & Tip Jar',
+      subtitle: 'Accept PayPal tips, view creator revenue, and share PayPal.Me link',
+      category: 'Actions',
+      icon: DollarSign,
+      action: () => {
+        onSelectTab('earnings');
+        onClose();
+      },
+    },
   ];
 
   // Filter items
   const matchedActions = actions.filter((a) => !q || a.title.toLowerCase().includes(q));
+
+  const matchedProjects = projects
+    .filter((p) => !q || p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)) || p.tags?.some(t => t.toLowerCase().includes(q)))
+    .slice(0, 5)
+    .map((p) => ({
+      id: `proj-${p.id}`,
+      title: p.name,
+      subtitle: `Project • ${p.source.toUpperCase()} • ${p.status}`,
+      category: 'Projects',
+      icon: FolderGit2,
+      action: () => {
+        onSelectTab('projects');
+        onClose();
+      },
+      url: p.url,
+    }));
 
   const matchedDrive = driveFiles
     .filter((f) => !q || f.name.toLowerCase().includes(q))
@@ -178,6 +256,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   const allResults = [
     ...matchedActions,
+    ...matchedProjects,
     ...matchedDrive,
     ...matchedRepos,
     ...matchedTasks,

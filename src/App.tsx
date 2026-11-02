@@ -13,6 +13,7 @@ import {
   GitHubEvent,
   WorkspaceTask,
   WorkspaceNote,
+  WorkspaceProject,
   SyncConfig,
   SyncLogEntry,
 } from './types';
@@ -30,6 +31,8 @@ import {
   saveStoredTasks,
   getStoredNotes,
   saveStoredNotes,
+  getStoredProjects,
+  saveStoredProjects,
   getSyncConfig,
   saveSyncConfig,
   getSyncLogs,
@@ -56,6 +59,11 @@ import { NotesView } from './components/NotesView';
 import { ActivityTimelineView } from './components/ActivityTimelineView';
 import { SyncCenterView } from './components/SyncCenterView';
 import { AICopilotView } from './components/AICopilotView';
+import { OneDWorldView } from './components/OneDWorldView';
+import { KikisWorldView } from './components/KikisWorldView';
+import { RemixedAppView } from './components/RemixedAppView';
+import { PayPalEarningsView } from './components/PayPalEarningsView';
+import { ProjectPortfolioView } from './components/ProjectPortfolioView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('overview');
@@ -73,6 +81,7 @@ export default function App() {
   const [githubStarred, setGithubStarred] = useState<GitHubRepo[]>([]);
   const [isGitHubLoading, setIsGitHubLoading] = useState(false);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
+  const [githubError, setGithubError] = useState<string | undefined>(undefined);
 
   // Google Drive State
   const [driveFiles, setDriveFiles] = useState<GoogleDriveFile[]>([]);
@@ -81,6 +90,7 @@ export default function App() {
   // Local Workspace State
   const [tasks, setTasks] = useState<WorkspaceTask[]>([]);
   const [notes, setNotes] = useState<WorkspaceNote[]>([]);
+  const [projects, setProjects] = useState<WorkspaceProject[]>([]);
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
 
@@ -97,6 +107,7 @@ export default function App() {
   useEffect(() => {
     setTasks(getStoredTasks());
     setNotes(getStoredNotes());
+    setProjects(getStoredProjects());
     setSyncLogs(getSyncLogs());
     setPinnedIds(getPinnedIds());
 
@@ -140,7 +151,13 @@ export default function App() {
     const startTime = Date.now();
     try {
       const data = await fetchGitHubData(effectiveUser, effectiveToken);
-      if (data.user) setGithubUser(data.user);
+      if (data.user) {
+        setGithubUser(data.user);
+        setGithubError(undefined);
+      } else {
+        setGithubUser(null);
+        if (data.error) setGithubError(data.error);
+      }
       setGithubRepos(data.repos);
       setGithubIssues(data.issues);
       setGithubEvents(data.events);
@@ -162,7 +179,7 @@ export default function App() {
       setSyncConfig(nextConfig);
       saveSyncConfig(nextConfig);
     } catch (err: any) {
-      console.error('Sync GitHub failed:', err);
+      setGithubError(err.message || 'Failed to sync GitHub data');
       addSyncLog({
         source: 'github',
         status: 'error',
@@ -414,6 +431,67 @@ export default function App() {
     saveStoredNotes(updated);
   };
 
+  // Project Management Handlers
+  const handleAddProject = (newProjData: Omit<WorkspaceProject, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newProj: WorkspaceProject = {
+      ...newProjData,
+      id: `proj-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const updated = [newProj, ...projects];
+    setProjects(updated);
+    saveStoredProjects(updated);
+    addSyncLog({
+      source: 'all',
+      status: 'success',
+      itemCount: 1,
+      message: `Added project: "${newProj.name}"`,
+      durationMs: 25,
+    });
+    setSyncLogs(getSyncLogs());
+  };
+
+  const handleUpdateProject = (id: string, updates: Partial<WorkspaceProject>) => {
+    const updated = projects.map((p) =>
+      p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
+    );
+    setProjects(updated);
+    saveStoredProjects(updated);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    const updated = projects.filter((p) => p.id !== id);
+    setProjects(updated);
+    saveStoredProjects(updated);
+  };
+
+  const handleBatchImportProjects = (newProjects: WorkspaceProject[]) => {
+    // Avoid duplicates by id or repoFullName or driveFolderId
+    const existingIds = new Set(projects.map((p) => p.id));
+    const existingRepoNames = new Set(projects.map((p) => p.repoFullName?.toLowerCase()).filter(Boolean));
+    const existingDriveIds = new Set(projects.map((p) => p.driveFolderId).filter(Boolean));
+
+    const deduplicated = newProjects.filter((p) => {
+      if (existingIds.has(p.id)) return false;
+      if (p.repoFullName && existingRepoNames.has(p.repoFullName.toLowerCase())) return false;
+      if (p.driveFolderId && existingDriveIds.has(p.driveFolderId)) return false;
+      return true;
+    });
+
+    const updated = [...deduplicated, ...projects];
+    setProjects(updated);
+    saveStoredProjects(updated);
+    addSyncLog({
+      source: 'all',
+      status: 'success',
+      itemCount: deduplicated.length,
+      message: `Pulled in ${deduplicated.length} projects to portfolio`,
+      durationMs: 35,
+    });
+    setSyncLogs(getSyncLogs());
+  };
+
   const handlePin = (id: string) => {
     const nextPins = togglePinnedId(id);
     setPinnedIds(nextPins);
@@ -465,6 +543,7 @@ export default function App() {
           githubRepoCount={githubRepos.length}
           taskCount={tasks.filter((t) => t.status !== 'done').length}
           noteCount={notes.length}
+          projectCount={projects.length}
           googleUser={googleUser}
           githubUser={githubUser}
           onLogoutGoogle={handleGoogleLogout}
@@ -489,8 +568,38 @@ export default function App() {
               tasks={tasks}
               notes={notes}
               pinnedIds={pinnedIds}
+              projectsCount={projects.length}
               onOpenNewTaskModal={() => setIsNewTaskModalOpen(true)}
               onUpdateTaskStatus={handleUpdateTaskStatus}
+            />
+          )}
+
+          {activeTab === 'projects' && (
+            <ProjectPortfolioView
+              projects={projects}
+              onAddProject={handleAddProject}
+              onUpdateProject={handleUpdateProject}
+              onDeleteProject={handleDeleteProject}
+              onBatchImportProjects={handleBatchImportProjects}
+              githubRepos={githubRepos}
+              githubUser={githubUser}
+              driveFiles={driveFiles}
+              googleUser={googleUser}
+              onSyncGitHub={() => syncGitHub()}
+              onSyncDrive={() => syncDrive()}
+              onAddTask={handleAddTask}
+              onAddNote={handleAddNote}
+              onSelectTab={setActiveTab}
+              onLogSyncEvent={(source, msg, count) => {
+                addSyncLog({
+                  source: source === 'github' ? 'github' : source === 'drive' ? 'drive' : 'all',
+                  status: 'success',
+                  itemCount: count,
+                  message: msg,
+                  durationMs: 35,
+                });
+                setSyncLogs(getSyncLogs());
+              }}
             />
           )}
 
@@ -521,6 +630,7 @@ export default function App() {
               onPinRepo={handlePin}
               pinnedIds={pinnedIds}
               onCreateTaskFromIssue={handleCreateTaskFromIssue}
+              error={githubError}
             />
           )}
 
@@ -598,6 +708,75 @@ export default function App() {
               onAddTask={handleAddTask}
             />
           )}
+
+          {activeTab === 'one_d_world' && (
+            <OneDWorldView
+              onAddTask={handleAddTask}
+              onLogSyncEvent={(source, msg, count) => {
+                addSyncLog({
+                  source: 'all',
+                  status: 'success',
+                  itemCount: count,
+                  message: msg,
+                  durationMs: 45,
+                });
+                setSyncLogs(getSyncLogs());
+              }}
+            />
+          )}
+
+          {activeTab === 'kikis_world' && (
+            <KikisWorldView
+              driveFiles={driveFiles}
+              githubRepos={githubRepos}
+              tasks={tasks}
+              notes={notes}
+              onAddTask={handleAddTask}
+              onLogSyncEvent={(source, msg, count) => {
+                addSyncLog({
+                  source: 'all',
+                  status: 'success',
+                  itemCount: count,
+                  message: msg,
+                  durationMs: 50,
+                });
+                setSyncLogs(getSyncLogs());
+              }}
+            />
+          )}
+
+          {activeTab === 'remix' && (
+            <RemixedAppView
+              onAddTask={handleAddTask}
+              onLogSyncEvent={(source, msg, count) => {
+                addSyncLog({
+                  source: 'all',
+                  status: 'success',
+                  itemCount: count,
+                  message: msg,
+                  durationMs: 35,
+                });
+                setSyncLogs(getSyncLogs());
+              }}
+            />
+          )}
+
+          {activeTab === 'earnings' && (
+            <PayPalEarningsView
+              onAddTask={handleAddTask}
+              onLogSyncEvent={(source, msg, count) => {
+                addSyncLog({
+                  source: 'all',
+                  status: 'success',
+                  itemCount: count,
+                  message: msg,
+                  durationMs: 40,
+                });
+                setSyncLogs(getSyncLogs());
+              }}
+              defaultEmail={googleUser?.email || 'grogusmom1989@gmail.com'}
+            />
+          )}
         </main>
       </div>
 
@@ -610,6 +789,7 @@ export default function App() {
         githubIssues={githubIssues}
         tasks={tasks}
         notes={notes}
+        projects={projects}
         onSelectTab={setActiveTab}
         onSyncAll={syncAll}
         onSelectDriveFile={(f) => {

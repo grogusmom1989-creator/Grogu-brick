@@ -31,6 +31,7 @@ interface GitHubViewProps {
   onPinRepo: (repoId: string) => void;
   pinnedIds: string[];
   onCreateTaskFromIssue: (issue: GitHubIssue) => void;
+  error?: string;
 }
 
 export const GitHubView: React.FC<GitHubViewProps> = ({
@@ -45,6 +46,7 @@ export const GitHubView: React.FC<GitHubViewProps> = ({
   onPinRepo,
   pinnedIds,
   onCreateTaskFromIssue,
+  error,
 }) => {
   const [activeTab, setActiveTab] = useState<'repos' | 'issues' | 'events' | 'starred'>('repos');
   const [search, setSearch] = useState('');
@@ -144,6 +146,22 @@ export const GitHubView: React.FC<GitHubViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Error / Warning Alert Banner */}
+      {error && (
+        <div className="bg-amber-950/30 border border-amber-500/30 rounded-xl p-4 flex items-center justify-between gap-3 text-xs text-amber-300">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="truncate">{error}</span>
+          </div>
+          <button
+            onClick={onConfigureAuth}
+            className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-200 rounded-lg whitespace-nowrap font-medium"
+          >
+            Fix GitHub Handle
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-3">
