@@ -102,6 +102,9 @@ import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { PlayStoreModal } from './components/PlayStoreModal';
+import { ThreeGameStudioView } from './components/ThreeGameStudioView';
+import { ScienceWorkbenchView } from './components/ScienceWorkbenchView';
+import { KikiOSView } from './components/KikiOSView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
@@ -1585,6 +1588,43 @@ export default function App() {
               githubIssues={githubIssues}
               tasks={tasks}
               notes={notes}
+              onAddTask={handleAddTask}
+              onAddNote={handleAddNote}
+            />
+          )}
+
+          {activeTab === 'three_game' && (
+            <ThreeGameStudioView
+              onAddTask={handleAddTask}
+              onAddNote={handleAddNote}
+              onLogSyncEvent={(_source, msg, count) => {
+                addSyncLog({
+                  source: 'all',
+                  status: 'success',
+                  itemCount: count,
+                  message: msg,
+                  durationMs: 30,
+                });
+                setSyncLogs(getSyncLogs());
+              }}
+            />
+          )}
+
+          {activeTab === 'science_lab' && (
+            <ScienceWorkbenchView
+              onAddTask={handleAddTask}
+              onAddNote={handleAddNote}
+            />
+          )}
+
+          {activeTab === 'kikios' && (
+            <KikiOSView
+              onSelectTab={setActiveTab}
+              driveFiles={driveFiles}
+              githubRepos={githubRepos}
+              tasks={tasks}
+              notes={notes}
+              bridges={bridges}
               onAddTask={handleAddTask}
             />
           )}

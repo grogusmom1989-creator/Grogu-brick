@@ -19,8 +19,8 @@
     "path": "./android.keystore",
     "alias": "omnisync-release-key"
   },
-  "appVersionName": "2.0.0",
-  "appVersionCode": 2,
+  "appVersionName": "3.0.0",
+  "appVersionCode": 3,
   "shortcuts": [
     {
       "name": "Pull Everything & Sync",
@@ -29,9 +29,21 @@
       "chosenIconUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/pwa-192x192.png"
     },
     {
-      "name": "Projects Portfolio",
-      "shortName": "Projects",
-      "url": "/?tab=projects",
+      "name": "3D Game & WebGL Studio",
+      "shortName": "3D Game",
+      "url": "/?tab=three_game",
+      "chosenIconUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/pwa-192x192.png"
+    },
+    {
+      "name": "Bioscience Lab",
+      "shortName": "Science Lab",
+      "url": "/?tab=science_lab",
+      "chosenIconUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/pwa-192x192.png"
+    },
+    {
+      "name": "Multi-Modal AI Suite",
+      "shortName": "AI Studio",
+      "url": "/?tab=ai",
       "chosenIconUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/pwa-192x192.png"
     }
   ],
@@ -46,7 +58,13 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://ais-pre-kbnunw7227i4imww2q3pcc-139265478135.us-west2.run.app/",
-  "minSdkVersion": 21,
+  "minSdkVersion": 24,
+  "targetSdkVersion": 35,
   "orientation": "portrait-primary",
-  "fingerprints": []
+  "fingerprints": [
+    {
+      "name": "Play Store Release Key",
+      "value": "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"
+    }
+  ]
 }

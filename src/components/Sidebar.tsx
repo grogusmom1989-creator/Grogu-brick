@@ -17,6 +17,8 @@ import {
   Code2,
   DollarSign,
   LogOut,
+  Gamepad2,
+  Dna,
 } from 'lucide-react';
 import { AppTab } from '../types';
 import { User } from 'firebase/auth';
@@ -127,10 +129,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'ai' as AppTab,
-      label: 'AI Workspace Copilot',
+      label: 'Multi-Modal AI Suite',
       icon: Sparkles,
-      badge: 'AI',
+      badge: 'Gemini 4',
       badgeColor: 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 border border-indigo-500/30',
+    },
+    {
+      id: 'three_game' as AppTab,
+      label: '3D Game & WebGL',
+      icon: Gamepad2,
+      badge: '3D',
+      badgeColor: 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30',
+    },
+    {
+      id: 'science_lab' as AppTab,
+      label: 'Bioscience Lab',
+      icon: Dna,
+      badge: 'PDB',
+      badgeColor: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
     },
     {
       id: 'one_d_world' as AppTab,
