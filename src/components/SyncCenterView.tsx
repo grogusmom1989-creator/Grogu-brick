@@ -14,8 +14,10 @@ import {
   Zap,
   Share2,
   ArrowRight,
+  Inbox,
+  Send,
 } from 'lucide-react';
-import { SyncConfig, SyncLogEntry, GoogleDriveFile, AppTab } from '../types';
+import { SyncConfig, SyncLogEntry, GoogleDriveFile, AppTab, OutboxItem } from '../types';
 import { GitHubSyncData } from '../services/github';
 import { User } from 'firebase/auth';
 
@@ -35,6 +37,10 @@ interface SyncCenterViewProps {
   tasksCount: number;
   notesCount: number;
   bridgesCount?: number;
+  outboxItems?: OutboxItem[];
+  isFlushingOutbox?: boolean;
+  onFlushOutbox?: () => void;
+  onClearOutbox?: () => void;
   onSelectTab?: (tab: AppTab) => void;
   onExportWorkspace: () => void;
 }
@@ -55,6 +61,10 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
   tasksCount,
   notesCount,
   bridgesCount = 10,
+  outboxItems = [],
+  isFlushingOutbox = false,
+  onFlushOutbox,
+  onClearOutbox,
   onSelectTab,
   onExportWorkspace,
 }) => {
@@ -315,6 +325,114 @@ export const SyncCenterView: React.FC<SyncCenterViewProps> = ({
             </select>
           </div>
         </div>
+      </div>
+
+      {/* Persistent Offline Outbox Queue */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Inbox className="w-4 h-4 text-cyan-400" />
+              <span>Persistent Offline Outbox Queue (localStorage → Firestore)</span>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                  outboxItems.length > 0
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                }`}
+              >
+                {outboxItems.length} Queued
+              </span>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Queues all task creations, status updates, note edits, and project changes in{' '}
+              <code className="text-cyan-300 font-mono">omnisync_outbox_v1</code> while offline and automatically flushes them to Firestore when connectivity is restored.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {outboxItems.length > 0 && onClearOutbox && (
+              <button
+                onClick={onClearOutbox}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition-colors flex items-center gap-1"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span>Clear Queue</span>
+              </button>
+            )}
+            {onFlushOutbox && (
+              <button
+                onClick={onFlushOutbox}
+                disabled={isFlushingOutbox || outboxItems.length === 0 || !googleUser}
+                className="px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+              >
+                <Send className={`w-3.5 h-3.5 ${isFlushingOutbox ? 'animate-pulse' : ''}`} />
+                <span>
+                  {isFlushingOutbox ? 'Flushing to Firestore...' : 'Flush Outbox Now'}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {outboxItems.length === 0 ? (
+          <div className="p-4 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Outbox is empty — all local mutations are flushed to Firestore Cloud.</span>
+            </div>
+            <span className="font-mono text-[11px] text-emerald-400">Auto-Flush Armed</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto border border-slate-800 rounded-lg">
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                <tr>
+                  <th className="py-2 px-3">Queued At</th>
+                  <th className="py-2 px-3">Entity</th>
+                  <th className="py-2 px-3">Operation</th>
+                  <th className="py-2 px-3">Item Title / ID</th>
+                  <th className="py-2 px-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono">
+                {outboxItems.map((item) => (
+                  <tr key={item.id} className="bg-slate-950/40">
+                    <td className="py-2 px-3 text-[11px] text-slate-400 whitespace-nowrap">
+                      {new Date(item.queuedAt).toLocaleTimeString()}
+                    </td>
+                    <td className="py-2 px-3 uppercase text-[10px] font-semibold text-cyan-300">
+                      {item.entityType}
+                    </td>
+                    <td className="py-2 px-3">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded uppercase font-semibold ${
+                          item.action === 'delete'
+                            ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                            : 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+                        }`}
+                      >
+                        {item.action}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3 font-sans text-xs text-slate-200 truncate max-w-xs">
+                      {item.entityTitle || item.entityId}
+                    </td>
+                    <td className="py-2 px-3 text-[11px]">
+                      {item.attempts > 0 ? (
+                        <span className="text-amber-400" title={item.lastError}>
+                          Retry #{item.attempts} Pending
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Waiting for connection / auth</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Sync Log Stream Table */}

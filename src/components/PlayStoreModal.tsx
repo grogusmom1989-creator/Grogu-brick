@@ -508,6 +508,11 @@ bubblewrap build`;
 
               {[
                 {
+                  key: 'privacy_url',
+                  label: 'Privacy Policy URL (Required by Google Play Console)',
+                  content: `${appOrigin}/privacy.html`,
+                },
+                {
                   key: 'title',
                   label: 'App Name (Max 30 chars)',
                   content: 'OmniSync Hub: Cloud & Dev Sync',

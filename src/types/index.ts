@@ -175,10 +175,22 @@ export interface WorkspaceNote {
   pinned?: boolean;
 }
 
+export interface OutboxItem {
+  id: string;
+  entityType: 'task' | 'note' | 'project' | 'bridge';
+  action: 'upsert' | 'delete';
+  entityId: string;
+  entityTitle: string;
+  payload?: any;
+  queuedAt: string;
+  attempts: number;
+  lastError?: string;
+}
+
 export interface SyncLogEntry {
   id: string;
   timestamp: string;
-  source: 'drive' | 'github' | 'all' | 'tasks' | 'notes';
+  source: 'drive' | 'github' | 'all' | 'tasks' | 'notes' | 'outbox';
   status: 'success' | 'warning' | 'error';
   itemCount: number;
   message: string;

@@ -29,7 +29,13 @@ import {
   WorkspaceNote,
   WorkspaceProject,
   ProjectBridge,
+  OutboxItem,
 } from '../types';
+import {
+  getOutboxItems,
+  removeOutboxItem,
+  markOutboxItemFailed,
+} from './storage';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
@@ -367,3 +373,65 @@ export async function pullAllFromFirestore(uid: string): Promise<{
 
   return { tasks, notes, projects, bridges };
 }
+
+/**
+ * Automatically flushes all queued mutations from the persistent localStorage Outbox
+ * to Firestore once connectivity is restored and user is authenticated.
+ */
+export async function flushOutboxToFirestore(uid: string): Promise<{
+  flushedCount: number;
+  remainingItems: OutboxItem[];
+}> {
+  const queue = getOutboxItems();
+  if (
+    queue.length === 0 ||
+    (typeof navigator !== 'undefined' && !navigator.onLine) ||
+    !auth.currentUser ||
+    auth.currentUser.uid !== uid
+  ) {
+    return { flushedCount: 0, remainingItems: queue };
+  }
+
+  let flushedCount = 0;
+  for (const item of queue) {
+    try {
+      if (item.entityType === 'task') {
+        if (item.action === 'upsert' && item.payload) {
+          await saveTaskToFirestore(uid, item.payload as WorkspaceTask);
+        } else if (item.action === 'delete') {
+          await deleteTaskFromFirestore(uid, item.entityId);
+        }
+      } else if (item.entityType === 'note') {
+        if (item.action === 'upsert' && item.payload) {
+          await saveNoteToFirestore(uid, item.payload as WorkspaceNote);
+        } else if (item.action === 'delete') {
+          await deleteNoteFromFirestore(uid, item.entityId);
+        }
+      } else if (item.entityType === 'project') {
+        if (item.action === 'upsert' && item.payload) {
+          await saveProjectToFirestore(uid, item.payload as WorkspaceProject);
+        } else if (item.action === 'delete') {
+          await deleteProjectFromFirestore(uid, item.entityId);
+        }
+      } else if (item.entityType === 'bridge') {
+        if (item.action === 'upsert' && item.payload) {
+          await saveBridgeToFirestore(uid, item.payload as ProjectBridge);
+        } else if (item.action === 'delete') {
+          await deleteBridgeFromFirestore(uid, item.entityId);
+        }
+      }
+
+      removeOutboxItem(item.id);
+      flushedCount++;
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+      markOutboxItemFailed(item.id, msg);
+    }
+  }
+
+  return {
+    flushedCount,
+    remainingItems: getOutboxItems(),
+  };
+}
+

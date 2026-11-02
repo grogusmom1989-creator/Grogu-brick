@@ -18,6 +18,7 @@ import {
   BridgeEvent,
   SyncConfig,
   SyncLogEntry,
+  OutboxItem,
 } from './types';
 import {
   initAuth,
@@ -35,6 +36,7 @@ import {
   deleteProjectFromFirestore,
   saveBridgeToFirestore,
   deleteBridgeFromFirestore,
+  flushOutboxToFirestore,
 } from './services/firebase';
 import { fetchDriveFiles } from './services/googleDrive';
 import { fetchGitHubData, GitHubUser } from './services/github';
@@ -61,6 +63,9 @@ import {
   saveCachedGitHubData,
   getPinnedIds,
   togglePinnedId,
+  getOutboxItems,
+  enqueueOutboxAction,
+  clearOutbox,
 } from './services/storage';
 
 // Components
@@ -121,14 +126,93 @@ export default function App() {
   const [bridges, setBridges] = useState<ProjectBridge[]>([]);
   const [bridgeEvents, setBridgeEvents] = useState<BridgeEvent[]>([]);
 
-  // Sync Engine State
+  // Sync Engine & Persistent Offline Outbox State
   const [syncConfig, setSyncConfig] = useState<SyncConfig>(getSyncConfig());
   const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncCountdown, setSyncCountdown] = useState<number>(300); // 5 min default
+  const [outboxItems, setOutboxItems] = useState<OutboxItem[]>(getOutboxItems());
+  const [isFlushingOutbox, setIsFlushingOutbox] = useState(false);
 
   // Global Command Palette (Cmd + K)
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+
+  // Flush queued offline mutations from localStorage Outbox to Firestore
+  const handleFlushOutbox = useCallback(
+    async (targetUser?: User | null) => {
+      const activeUser = targetUser ?? googleUser;
+      const queued = getOutboxItems();
+      setOutboxItems(queued);
+
+      if (queued.length === 0 || !activeUser || !navigator.onLine) {
+        return;
+      }
+
+      setIsFlushingOutbox(true);
+      const startTime = Date.now();
+      try {
+        const { flushedCount, remainingItems } = await flushOutboxToFirestore(activeUser.uid);
+        setOutboxItems(remainingItems);
+        if (flushedCount > 0) {
+          addSyncLog({
+            source: 'outbox',
+            status: remainingItems.length === 0 ? 'success' : 'warning',
+            itemCount: flushedCount,
+            message: `Auto-flushed ${flushedCount} queued offline action${flushedCount === 1 ? '' : 's'} from Outbox to Firestore`,
+            durationMs: Date.now() - startTime,
+          });
+          setSyncLogs(getSyncLogs());
+        }
+      } finally {
+        setIsFlushingOutbox(false);
+      }
+    },
+    [googleUser]
+  );
+
+  // Enqueue any user mutation into persistent localStorage Outbox & auto-flush when online
+  const queueAndFlushMutation = useCallback(
+    (mutation: {
+      entityType: OutboxItem['entityType'];
+      action: OutboxItem['action'];
+      entityId: string;
+      entityTitle: string;
+      payload?: any;
+    }) => {
+      const updatedQueue = enqueueOutboxAction(mutation);
+      setOutboxItems(updatedQueue);
+
+      if (!navigator.onLine) {
+        addSyncLog({
+          source: 'outbox',
+          status: 'warning',
+          itemCount: updatedQueue.length,
+          message: `Offline: Queued ${mutation.entityType} ${mutation.action} ("${mutation.entityTitle}") in persistent Outbox`,
+          durationMs: 5,
+        });
+        setSyncLogs(getSyncLogs());
+        return;
+      }
+
+      if (googleUser) {
+        handleFlushOutbox(googleUser);
+      }
+    },
+    [googleUser, handleFlushOutbox]
+  );
+
+  // Automatically flush the persistent Outbox as soon as network connectivity is restored
+  useEffect(() => {
+    const onOnline = () => {
+      const pending = getOutboxItems();
+      setOutboxItems(pending);
+      if (pending.length > 0 && googleUser) {
+        handleFlushOutbox(googleUser);
+      }
+    };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [googleUser, handleFlushOutbox]);
 
   // Helper to auto-import pulled GitHub repos & Google Drive folders into Projects Portfolio
   const mergePulledAssetsIntoPortfolio = useCallback(
@@ -203,64 +287,70 @@ export default function App() {
   );
 
   // Pull & Merge from Firestore Cloud Vault when user is authenticated
-  const syncFirestoreCloud = useCallback(async (user: User) => {
-    try {
-      const cfg = getSyncConfig();
-      await syncUserProfileToFirestore(user, cfg.githubUsername || 'grogusmom1989');
-      const cloudData = await pullAllFromFirestore(user.uid);
+  const syncFirestoreCloud = useCallback(
+    async (user: User) => {
+      try {
+        // First flush any pending offline mutations from the persistent localStorage Outbox
+        await handleFlushOutbox(user);
 
-      // Merge Tasks
-      const localTasks = getStoredTasks();
-      const cloudTaskIds = new Set(cloudData.tasks.map((t) => t.id));
-      const mergedTasks = [
-        ...cloudData.tasks,
-        ...localTasks.filter((t) => !cloudTaskIds.has(t.id)),
-      ];
-      setTasks(mergedTasks);
-      saveStoredTasks(mergedTasks);
-      for (const t of localTasks.filter((item) => !cloudTaskIds.has(item.id)).slice(0, 15)) {
-        await saveTaskToFirestore(user.uid, t);
+        const cfg = getSyncConfig();
+        await syncUserProfileToFirestore(user, cfg.githubUsername || 'grogusmom1989');
+        const cloudData = await pullAllFromFirestore(user.uid);
+
+        // Merge Tasks
+        const localTasks = getStoredTasks();
+        const cloudTaskIds = new Set(cloudData.tasks.map((t) => t.id));
+        const mergedTasks = [
+          ...cloudData.tasks,
+          ...localTasks.filter((t) => !cloudTaskIds.has(t.id)),
+        ];
+        setTasks(mergedTasks);
+        saveStoredTasks(mergedTasks);
+        for (const t of localTasks.filter((item) => !cloudTaskIds.has(item.id)).slice(0, 15)) {
+          await saveTaskToFirestore(user.uid, t);
+        }
+
+        // Merge Notes
+        const localNotes = getStoredNotes();
+        const cloudNoteIds = new Set(cloudData.notes.map((n) => n.id));
+        const mergedNotes = [
+          ...cloudData.notes,
+          ...localNotes.filter((n) => !cloudNoteIds.has(n.id)),
+        ];
+        setNotes(mergedNotes);
+        saveStoredNotes(mergedNotes);
+        for (const n of localNotes.filter((item) => !cloudNoteIds.has(item.id)).slice(0, 15)) {
+          await saveNoteToFirestore(user.uid, n);
+        }
+
+        // Merge Projects
+        const localProjects = getStoredProjects();
+        const cloudProjIds = new Set(cloudData.projects.map((p) => p.id));
+        const mergedProjects = [
+          ...cloudData.projects,
+          ...localProjects.filter((p) => !cloudProjIds.has(p.id)),
+        ];
+        setProjects(mergedProjects);
+        saveStoredProjects(mergedProjects);
+        for (const p of localProjects.filter((item) => !cloudProjIds.has(item.id)).slice(0, 15)) {
+          await saveProjectToFirestore(user.uid, p);
+        }
+
+        // Merge Bridges
+        const localBridges = getStoredBridges();
+        const cloudBridgeIds = new Set(cloudData.bridges.map((b) => b.id));
+        const mergedBridges = [
+          ...cloudData.bridges,
+          ...localBridges.filter((b) => !cloudBridgeIds.has(b.id)),
+        ];
+        setBridges(mergedBridges);
+        saveStoredBridges(mergedBridges);
+      } catch (err) {
+        console.warn('Firestore cloud sync warning:', err);
       }
-
-      // Merge Notes
-      const localNotes = getStoredNotes();
-      const cloudNoteIds = new Set(cloudData.notes.map((n) => n.id));
-      const mergedNotes = [
-        ...cloudData.notes,
-        ...localNotes.filter((n) => !cloudNoteIds.has(n.id)),
-      ];
-      setNotes(mergedNotes);
-      saveStoredNotes(mergedNotes);
-      for (const n of localNotes.filter((item) => !cloudNoteIds.has(item.id)).slice(0, 15)) {
-        await saveNoteToFirestore(user.uid, n);
-      }
-
-      // Merge Projects
-      const localProjects = getStoredProjects();
-      const cloudProjIds = new Set(cloudData.projects.map((p) => p.id));
-      const mergedProjects = [
-        ...cloudData.projects,
-        ...localProjects.filter((p) => !cloudProjIds.has(p.id)),
-      ];
-      setProjects(mergedProjects);
-      saveStoredProjects(mergedProjects);
-      for (const p of localProjects.filter((item) => !cloudProjIds.has(item.id)).slice(0, 15)) {
-        await saveProjectToFirestore(user.uid, p);
-      }
-
-      // Merge Bridges
-      const localBridges = getStoredBridges();
-      const cloudBridgeIds = new Set(cloudData.bridges.map((b) => b.id));
-      const mergedBridges = [
-        ...cloudData.bridges,
-        ...localBridges.filter((b) => !cloudBridgeIds.has(b.id)),
-      ];
-      setBridges(mergedBridges);
-      saveStoredBridges(mergedBridges);
-    } catch (err) {
-      console.warn('Firestore cloud sync warning:', err);
-    }
-  }, []);
+    },
+    [handleFlushOutbox]
+  );
 
   // 1. Initial Load from Local Cache & Persistent Auth Listener
   useEffect(() => {
@@ -271,6 +361,7 @@ export default function App() {
     setBridgeEvents(getStoredBridgeEvents());
     setSyncLogs(getSyncLogs());
     setPinnedIds(getPinnedIds());
+    setOutboxItems(getOutboxItems());
 
     const cachedDrive = getCachedDriveFiles();
     if (cachedDrive.length > 0) {
@@ -553,7 +644,7 @@ export default function App() {
     syncGitHub(username, token);
   };
 
-  // 9. Tasks and Notes Handlers (Persisted Locally + Firestore Cloud)
+  // 9. Tasks and Notes Handlers (Persisted Locally + Queued in Outbox → Auto-Flushed to Firestore)
   const handleAddTask = (newTask: Omit<WorkspaceTask, 'id' | 'createdAt'>) => {
     const task: WorkspaceTask = {
       ...newTask,
@@ -563,9 +654,13 @@ export default function App() {
     const updated = [task, ...tasks];
     setTasks(updated);
     saveStoredTasks(updated);
-    if (googleUser) {
-      saveTaskToFirestore(googleUser.uid, task).catch(() => {});
-    }
+    queueAndFlushMutation({
+      entityType: 'task',
+      action: 'upsert',
+      entityId: task.id,
+      entityTitle: task.title,
+      payload: task,
+    });
   };
 
   const handleUpdateTaskStatus = (taskId: string, status: 'todo' | 'in_progress' | 'done') => {
@@ -573,18 +668,28 @@ export default function App() {
     setTasks(updated);
     saveStoredTasks(updated);
     const target = updated.find((t) => t.id === taskId);
-    if (googleUser && target) {
-      saveTaskToFirestore(googleUser.uid, target).catch(() => {});
+    if (target) {
+      queueAndFlushMutation({
+        entityType: 'task',
+        action: 'upsert',
+        entityId: target.id,
+        entityTitle: `${target.title} (${status})`,
+        payload: target,
+      });
     }
   };
 
   const handleDeleteTask = (taskId: string) => {
+    const existing = tasks.find((t) => t.id === taskId);
     const updated = tasks.filter((t) => t.id !== taskId);
     setTasks(updated);
     saveStoredTasks(updated);
-    if (googleUser) {
-      deleteTaskFromFirestore(googleUser.uid, taskId).catch(() => {});
-    }
+    queueAndFlushMutation({
+      entityType: 'task',
+      action: 'delete',
+      entityId: taskId,
+      entityTitle: existing?.title || taskId,
+    });
   };
 
   const handleCreateTaskFromDriveFile = (file: GoogleDriveFile) => {
@@ -624,9 +729,13 @@ export default function App() {
     const updated = [note, ...notes];
     setNotes(updated);
     saveStoredNotes(updated);
-    if (googleUser) {
-      saveNoteToFirestore(googleUser.uid, note).catch(() => {});
-    }
+    queueAndFlushMutation({
+      entityType: 'note',
+      action: 'upsert',
+      entityId: note.id,
+      entityTitle: note.title,
+      payload: note,
+    });
   };
 
   const handleUpdateNote = (id: string, updates: Partial<WorkspaceNote>) => {
@@ -636,18 +745,28 @@ export default function App() {
     setNotes(updated);
     saveStoredNotes(updated);
     const target = updated.find((n) => n.id === id);
-    if (googleUser && target) {
-      saveNoteToFirestore(googleUser.uid, target).catch(() => {});
+    if (target) {
+      queueAndFlushMutation({
+        entityType: 'note',
+        action: 'upsert',
+        entityId: target.id,
+        entityTitle: target.title,
+        payload: target,
+      });
     }
   };
 
   const handleDeleteNote = (id: string) => {
+    const existing = notes.find((n) => n.id === id);
     const updated = notes.filter((n) => n.id !== id);
     setNotes(updated);
     saveStoredNotes(updated);
-    if (googleUser) {
-      deleteNoteFromFirestore(googleUser.uid, id).catch(() => {});
-    }
+    queueAndFlushMutation({
+      entityType: 'note',
+      action: 'delete',
+      entityId: id,
+      entityTitle: existing?.title || id,
+    });
   };
 
   // Project Management Handlers
@@ -661,9 +780,13 @@ export default function App() {
     const updated = [newProj, ...projects];
     setProjects(updated);
     saveStoredProjects(updated);
-    if (googleUser) {
-      saveProjectToFirestore(googleUser.uid, newProj).catch(() => {});
-    }
+    queueAndFlushMutation({
+      entityType: 'project',
+      action: 'upsert',
+      entityId: newProj.id,
+      entityTitle: newProj.name,
+      payload: newProj,
+    });
     addSyncLog({
       source: 'all',
       status: 'success',
@@ -681,18 +804,28 @@ export default function App() {
     setProjects(updated);
     saveStoredProjects(updated);
     const target = updated.find((p) => p.id === id);
-    if (googleUser && target) {
-      saveProjectToFirestore(googleUser.uid, target).catch(() => {});
+    if (target) {
+      queueAndFlushMutation({
+        entityType: 'project',
+        action: 'upsert',
+        entityId: target.id,
+        entityTitle: target.name,
+        payload: target,
+      });
     }
   };
 
   const handleDeleteProject = (id: string) => {
+    const existing = projects.find((p) => p.id === id);
     const updated = projects.filter((p) => p.id !== id);
     setProjects(updated);
     saveStoredProjects(updated);
-    if (googleUser) {
-      deleteProjectFromFirestore(googleUser.uid, id).catch(() => {});
-    }
+    queueAndFlushMutation({
+      entityType: 'project',
+      action: 'delete',
+      entityId: id,
+      entityTitle: existing?.name || id,
+    });
   };
 
   const handleBatchImportProjects = (newProjects: WorkspaceProject[]) => {
@@ -710,11 +843,15 @@ export default function App() {
     const updated = [...deduplicated, ...projects];
     setProjects(updated);
     saveStoredProjects(updated);
-    if (googleUser) {
-      deduplicated.slice(0, 20).forEach((p) => {
-        saveProjectToFirestore(googleUser.uid, p).catch(() => {});
+    deduplicated.slice(0, 20).forEach((p) => {
+      queueAndFlushMutation({
+        entityType: 'project',
+        action: 'upsert',
+        entityId: p.id,
+        entityTitle: p.name,
+        payload: p,
       });
-    }
+    });
     addSyncLog({
       source: 'all',
       status: 'success',
@@ -731,8 +868,14 @@ export default function App() {
       const updated = prev.map((b) => (b.id === id ? { ...b, ...updates } : b));
       saveStoredBridges(updated);
       const target = updated.find((b) => b.id === id);
-      if (googleUser && target) {
-        saveBridgeToFirestore(googleUser.uid, target).catch(() => {});
+      if (target) {
+        queueAndFlushMutation({
+          entityType: 'bridge',
+          action: 'upsert',
+          entityId: target.id,
+          entityTitle: target.title,
+          payload: target,
+        });
       }
       return updated;
     });
@@ -748,20 +891,28 @@ export default function App() {
       };
       const updated = [bridge, ...prev];
       saveStoredBridges(updated);
-      if (googleUser) {
-        saveBridgeToFirestore(googleUser.uid, bridge).catch(() => {});
-      }
+      queueAndFlushMutation({
+        entityType: 'bridge',
+        action: 'upsert',
+        entityId: bridge.id,
+        entityTitle: bridge.title,
+        payload: bridge,
+      });
       return updated;
     });
   };
 
   const handleDeleteBridge = (id: string) => {
     setBridges((prev) => {
+      const existing = prev.find((b) => b.id === id);
       const updated = prev.filter((b) => b.id !== id);
       saveStoredBridges(updated);
-      if (googleUser) {
-        deleteBridgeFromFirestore(googleUser.uid, id).catch(() => {});
-      }
+      queueAndFlushMutation({
+        entityType: 'bridge',
+        action: 'delete',
+        entityId: id,
+        entityTitle: existing?.title || id,
+      });
       return updated;
     });
   };
@@ -1012,6 +1163,10 @@ export default function App() {
               tasksCount={tasks.length}
               notesCount={notes.length}
               bridgesCount={bridges.length}
+              outboxItems={outboxItems}
+              isFlushingOutbox={isFlushingOutbox}
+              onFlushOutbox={() => handleFlushOutbox(googleUser)}
+              onClearOutbox={() => setOutboxItems(clearOutbox())}
               onSelectTab={setActiveTab}
               onExportWorkspace={handleExportWorkspace}
             />
@@ -1158,8 +1313,12 @@ export default function App() {
         bridgesCount={bridges.length}
       />
 
-      {/* Offline Status Connectivity Banner */}
-      <OfflineIndicator />
+      {/* Offline Status & Persistent Outbox Connectivity Banner */}
+      <OfflineIndicator
+        outboxCount={outboxItems.length}
+        isFlushingOutbox={isFlushingOutbox}
+        onFlushOutbox={() => handleFlushOutbox(googleUser)}
+      />
     </div>
   );
 }

@@ -12,11 +12,10 @@ import {
   Sparkles,
   Compass,
   Film,
+  Monitor,
   Code2,
   DollarSign,
   LogOut,
-  ExternalLink,
-  ChevronRight,
 } from 'lucide-react';
 import { AppTab } from '../types';
 import { User } from 'firebase/auth';
@@ -136,6 +135,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Film,
       badge: '2.0',
       badgeColor: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30',
+    },
+    {
+      id: 'kikios' as AppTab,
+      label: 'KikiOS Cyber-Deck',
+      icon: Monitor,
+      badge: 'OS',
+      badgeColor: 'bg-amber-500/10 text-amber-300 border border-amber-500/30',
     },
     {
       id: 'remix' as AppTab,

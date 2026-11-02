@@ -7,6 +7,7 @@ import {
   WorkspaceProject,
   ProjectBridge,
   BridgeEvent,
+  OutboxItem,
 } from '../types';
 import { GitHubSyncData } from './github';
 
@@ -22,6 +23,7 @@ const STORAGE_KEYS = {
   PROJECTS: 'omnisync_projects_v2',
   BRIDGES: 'omnisync_bridges_v1',
   BRIDGE_EVENTS: 'omnisync_bridge_events_v1',
+  OUTBOX: 'omnisync_outbox_v1',
 };
 
 export const DEFAULT_PROJECTS: WorkspaceProject[] = [
@@ -622,5 +624,112 @@ export const clearStoredBridgeEvents = () => {
     console.error('Failed to clear bridge events', e);
   }
 };
+
+// ============================================================================
+// Persistent Offline Outbox Queue (localStorage)
+// ============================================================================
+
+export const getOutboxItems = (): OutboxItem[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.OUTBOX);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveOutboxItems = (items: OutboxItem[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.OUTBOX, JSON.stringify(items));
+  } catch (e) {
+    console.error('Failed to save outbox items', e);
+  }
+};
+
+/**
+ * Enqueues a user mutation (task creation/update, note edit, project update, bridge update, or deletion)
+ * into the persistent localStorage Outbox. Coalesces repeated updates to the same entity ID so the
+ * queue stays compact and ordered chronologically.
+ */
+export const enqueueOutboxAction = (item: {
+  entityType: OutboxItem['entityType'];
+  action: OutboxItem['action'];
+  entityId: string;
+  entityTitle: string;
+  payload?: any;
+}): OutboxItem[] => {
+  try {
+    const current = getOutboxItems();
+    const existingIndex = current.findIndex(
+      (q) => q.entityType === item.entityType && q.entityId === item.entityId
+    );
+
+    const nextEntry: OutboxItem = {
+      id: `outbox-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      entityType: item.entityType,
+      action: item.action,
+      entityId: item.entityId,
+      entityTitle: item.entityTitle,
+      payload: item.payload,
+      queuedAt: new Date().toISOString(),
+      attempts: 0,
+    };
+
+    let updated: OutboxItem[];
+    if (existingIndex !== -1) {
+      // Coalesce with existing queued mutation for the same entity
+      updated = [...current];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        action: item.action,
+        entityTitle: item.entityTitle,
+        payload: item.payload,
+        queuedAt: new Date().toISOString(),
+      };
+    } else {
+      updated = [...current, nextEntry];
+    }
+
+    saveOutboxItems(updated);
+    return updated;
+  } catch (e) {
+    console.error('Failed to enqueue outbox action', e);
+    return getOutboxItems();
+  }
+};
+
+export const removeOutboxItem = (id: string): OutboxItem[] => {
+  const current = getOutboxItems();
+  const updated = current.filter((item) => item.id !== id);
+  saveOutboxItems(updated);
+  return updated;
+};
+
+export const markOutboxItemFailed = (id: string, errorMsg: string): OutboxItem[] => {
+  const current = getOutboxItems();
+  const updated = current.map((item) =>
+    item.id === id
+      ? {
+          ...item,
+          attempts: (item.attempts || 0) + 1,
+          lastError: errorMsg,
+        }
+      : item
+  );
+  saveOutboxItems(updated);
+  return updated;
+};
+
+export const clearOutbox = (): OutboxItem[] => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.OUTBOX);
+  } catch (e) {
+    console.error('Failed to clear outbox', e);
+  }
+  return [];
+};
+
 
 
