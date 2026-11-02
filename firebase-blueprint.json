@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with authentication and workspace metadata.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 1024 },
+        "paypalHandle": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "createdAt", "updatedAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A workspace portfolio project synced across GitHub, Drive, or custom.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128, "minLength": 1 },
+        "description": { "type": "string", "maxLength": 2048 },
+        "category": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["active", "archived", "concept"] },
+        "tags": { "type": "array", "description": "Up to 10 project tags" },
+        "repoFullName": { "type": "string", "maxLength": 256 },
+        "driveFolderId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "name", "status", "createdAt", "updatedAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Actionable to-do item linked to GitHub issues, Drive docs, or manual input.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256, "minLength": 1 },
+        "description": { "type": "string", "maxLength": 4096 },
+        "status": { "type": "string", "enum": ["todo", "in_progress", "done"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "source": { "type": "string", "enum": ["manual", "github", "drive", "ai", "bridge"] },
+        "sourceUrl": { "type": "string", "maxLength": 1024 },
+        "sourceTitle": { "type": "string", "maxLength": 256 },
+        "tags": { "type": "array" },
+        "dueDate": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "status", "priority", "createdAt"]
+    },
+    "Note": {
+      "title": "Note",
+      "description": "Quick notes and ideas with tags and cross-service linkages.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256, "minLength": 1 },
+        "content": { "type": "string", "maxLength": 16384 },
+        "tags": { "type": "array" },
+        "linkedFileId": { "type": "string", "maxLength": 128 },
+        "linkedRepo": { "type": "string", "maxLength": 256 },
+        "color": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "content", "updatedAt"]
+    },
+    "Bridge": {
+      "title": "Bridge",
+      "description": "Cross-project connector configuration linking hubs and applications.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128, "minLength": 1 },
+        "sourceModule": { "type": "string", "maxLength": 64 },
+        "targetModule": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["active", "paused", "syncing", "error"] },
+        "autoSync": { "type": "boolean" },
+        "syncIntervalMinutes": { "type": "number" },
+        "lastSyncAt": { "type": "string", "format": "date-time" },
+        "packetsCount": { "type": "number" }
+      },
+      "required": ["id", "userId", "name", "sourceModule", "targetModule", "status"]
+    },
+    "SyncLog": {
+      "title": "SyncLog",
+      "description": "Event log entry recording sync operations across services.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "source": { "type": "string", "enum": ["github", "drive", "all", "bridge"] },
+        "status": { "type": "string", "enum": ["success", "error", "warning"] },
+        "itemCount": { "type": "number" },
+        "message": { "type": "string", "maxLength": 1024 },
+        "durationMs": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "source", "status", "message", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Root user profile document."
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": "Project",
+      "description": "User's managed portfolio and repository projects."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Actionable task items belonging to the authenticated user."
+    },
+    "/users/{userId}/notes/{noteId}": {
+      "schema": "Note",
+      "description": "Quick notes and documentation created by the user."
+    },
+    "/users/{userId}/bridges/{bridgeId}": {
+      "schema": "Bridge",
+      "description": "Configured bridge connectors linking apps."
+    },
+    "/users/{userId}/syncLogs/{logId}": {
+      "schema": "SyncLog",
+      "description": "Audit and sync telemetry history."
+    }
+  }
+}

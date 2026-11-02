@@ -11,6 +11,7 @@ export type AppTab =
   | 'ai'
   | 'one_d_world'
   | 'kikis_world'
+  | 'kikios'
   | 'remix'
   | 'earnings';
 
