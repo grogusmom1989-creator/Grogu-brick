@@ -1,0 +1,6 @@
+{
+  "name": "OmniSync Hub",
+  "description": "Unified workspace connecting GitHub repositories, Google Drive files, quick notes, tasks, and continuous live sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
